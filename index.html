@@ -66,6 +66,11 @@
     .bigBtn{appearance:none;border:none;background:#0f1e18;color:#eafff6;padding:18px 0;border-radius:12px;border:1px solid rgba(255,255,255,.08);font-weight:800;letter-spacing:.6px;font-size:22px;cursor:pointer;user-select:none;touch-action:manipulation}
     .bigBtn:active{transform:translateY(1px)}
     @media (pointer:coarse){.bigBtn{padding:22px 0;font-size:26px}}
+  
+    /* Alarm capsule */
+    .alarm{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:linear-gradient(135deg,#3d0f10,#2b0b0d);color:#ffd7d7;border:1px solid rgba(255,59,48,.55);box-shadow:0 0 18px rgba(255,59,48,.35);font-weight:700}
+    .alarm .mark{width:18px;height:18px;line-height:18px;border-radius:999px;background:#ff3b30;color:#fff;text-align:center;font-size:12px;font-weight:900}
+    .hidden{display:none}
   </style>
 </head>
 <body>
@@ -80,14 +85,17 @@
       <!-- Chart FIRST -->
       <section class="card" id="chartCard">
         <h2>VRR Trend</h2>
+        
         <div class="legend" style="margin-bottom:8px">
           <span><i class="key k-pressure"></i> VRR (%)</span>
           <span><i class="key k-target"></i> Target band</span>
         </div>
         <canvas id="chart" width="800" height="300" aria-label="VRR chart"></canvas>
-        <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:10px">
+        <div class="chartFooter" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center; margin-top:10px">
+          <div id="alarm" class="alarm" style="opacity:.35"><span class="mark">!</span><span id="alarmText">VRR OK (90–110%)</span></div>
           <div class="pill">Target band: <strong id="bandText">90–110 %</strong></div>
-          <div class="pill">Fail limits: <strong>60 % / 140 %</strong></div>
+          <div class="pill">Fail limits: <strong>80 % / 120 %</strong></div>
+          <div class="pill">Fail limits: <strong>80 % / 120 %</strong></div>
           <div class="pill">Disturbances: <strong>on</strong></div>
         </div>
       </section>
@@ -154,14 +162,14 @@
     const PROD_BASE = 7000; // BOPD
     const PROD_MIN = PROD_BASE - 3000; // 4000
     const PROD_MAX = PROD_BASE + 3000; // 10000
-    const PROD_NOISE = 20; // smaller jitter per step for slower feel
+    const PROD_NOISE = 60; // stronger jitter per step for challenge // smaller jitter per step for slower feel
     const STEP = 100; // BWIPD per tap/interval
 
     const noiseAmp = 0.8; // VRR % jitter amplitude (reduced)
 
     // bands (in % VRR)
     const BAND_MIN = 90, BAND_MAX = 110;
-    const FAIL_MIN = 60, FAIL_MAX = 140;
+    const FAIL_MIN = 80, FAIL_MAX = 120;
 
     // ----- State -----
     let inj = 7000; // BWIPD
@@ -170,6 +178,7 @@
     let score = 0;
     let playing = false;
     let outOfBoundsFor = 0; // seconds out of fail bounds
+    let tElapsed = 0; // seconds since start
 
     // UI elements
     const injVal = document.getElementById('injVal');
@@ -183,6 +192,8 @@
     const gDot = document.getElementById('gDot');
     const bandText = document.getElementById('bandText');
     const healthBar = document.getElementById('healthBar');
+    const alarmEl = document.getElementById('alarm');
+    const alarmText = document.getElementById('alarmText');
 
     // Chart
     const canvas = document.getElementById('chart');
@@ -213,19 +224,37 @@
       // health vs 100%
       const norm = Math.max(0, 100 - Math.abs(P - 100));
       healthBar.style.width = Math.max(0, Math.min(100, norm)) + '%';
+
+      // alarm capsule
+      if(P < FAIL_MIN){
+        alarmText.textContent = '⚠ Excessive Gas Production (VRR < 80%)';
+        alarmEl.classList.remove('hidden');
+      } else if(P > FAIL_MAX){
+        alarmText.textContent = '⚠ Excessive Water Production (VRR > 120%)';
+        alarmEl.classList.remove('hidden');
+      } else {
+        alarmEl.classList.add('hidden');
+      }
     }
 
     function physicsStep(){
-      // random walk for producer around base with gentle drift (slower)
-      prod += (PROD_BASE - prod) * 0.01 + (Math.random()*2-1) * PROD_NOISE;
+      // time
+      tElapsed += dt;
+
+      // producer random walk around base with gentle, bounded drift; volatility increases slowly over time
+      const effNoise = PROD_NOISE * (1 + 1.0 * (1 - Math.exp(-tElapsed/35))); // ramps to 2x base
+      prod += (PROD_BASE - prod) * 0.01 + (Math.random()*2-1) * effNoise;
       if(prod < PROD_MIN) prod = PROD_MIN + Math.random()*100;
       if(prod > PROD_MAX) prod = PROD_MAX - Math.random()*100;
 
       const desired = (inj / prod) * 100; // target VRR based on current producer
       const noise = (Math.random()*2-1) * noiseAmp;
-      P += (desired - P) * 0.08 + noise * dt * 5; // slower response + reduced jitter
 
-      if(P >= BAND_MIN && P <= BAND_MAX) score += dt * 8; // slightly slower scoring
+      // response gain increases over time (faster as the game goes on), capped
+      const responseGain = 0.06 + 0.10 * (1 - Math.exp(-tElapsed/30)); // -> ~0.16 max
+      P += (desired - P) * responseGain + noise * dt * 5;
+
+      if(P >= BAND_MIN && P <= BAND_MAX) score += dt * 8; // scoring
 
       if(P < FAIL_MIN || P > FAIL_MAX) outOfBoundsFor += dt; else outOfBoundsFor = Math.max(0, outOfBoundsFor - dt*0.5);
 
