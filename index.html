@@ -1,0 +1,785 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kinetik App Store Preview</title>
+  <style>
+    :root{
+      --bg:#eef4ff;
+      --ink:#141827;
+      --muted:#737b8d;
+      --line:rgba(20,24,39,.10);
+      --panel:rgba(255,255,255,.76);
+      --soft:rgba(255,255,255,.50);
+      --blue:#0a84ff;
+      --pink:#ff2d55;
+      --shadow:0 20px 60px rgba(58,70,108,.16);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      min-height:100dvh;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 22% 0%,rgba(255,45,85,.14),transparent 28%),
+        radial-gradient(circle at 82% 12%,rgba(10,132,255,.13),transparent 32%),
+        linear-gradient(180deg,#f9fbff 0%,var(--bg) 54%,#f6f0fb 100%);
+      overflow:hidden;
+    }
+    body:before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      opacity:.50;
+      background-image:
+        radial-gradient(circle,#7ba8ff 1px,transparent 1.6px),
+        radial-gradient(circle,#b5c8ff 1.5px,transparent 2px);
+      background-size:73px 73px,149px 149px;
+      background-position:14px 18px,51px 35px;
+    }
+    button,input{font:inherit}
+    button{cursor:pointer}
+    h1,h2,h3,p{margin:0}
+    .shell{
+      height:100dvh;
+      max-width:760px;
+      margin:0 auto;
+      position:relative;
+      overflow:hidden;
+    }
+    .screen{
+      position:absolute;
+      inset:0;
+      display:none;
+      grid-template-rows:auto minmax(0,1fr) auto;
+      min-height:0;
+    }
+    .screen.active{display:grid}
+
+    .home-top{
+      padding:calc(10px + env(safe-area-inset-top)) 10px 8px;
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      align-items:center;
+      gap:10px;
+    }
+    .logo{font-size:18px;font-weight:950;letter-spacing:0}
+    .logo span{color:#ed3153}
+    .profile-pill{
+      justify-self:center;
+      min-width:112px;
+      height:36px;
+      border:1px solid rgba(255,255,255,.78);
+      border-radius:999px;
+      background:rgba(255,255,255,.74);
+      color:var(--ink);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      box-shadow:0 10px 28px rgba(69,74,103,.10);
+      font-size:13px;
+      font-weight:700;
+      backdrop-filter:blur(22px);
+    }
+    .live-dot{width:9px;height:9px;border-radius:50%;background:var(--pink);box-shadow:0 0 18px rgba(255,45,85,.65)}
+    .avatar{
+      justify-self:end;
+      width:36px;
+      height:36px;
+      border:0;
+      border-radius:50%;
+      background:linear-gradient(135deg,#0a84ff,#27c7e6);
+      color:white;
+      font-weight:950;
+      box-shadow:0 12px 30px rgba(10,132,255,.30);
+    }
+    .home-main{
+      min-height:0;
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr);
+      gap:16px;
+      padding:8px 0 0;
+    }
+    .home-title{
+      padding:0 10px;
+      color:#7c8495;
+      font-size:12px;
+      font-weight:950;
+      letter-spacing:3px;
+    }
+    .launcher-scroll{
+      min-height:0;
+      overflow-x:auto;
+      overflow-y:hidden;
+      scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;
+      display:grid;
+      grid-auto-flow:column;
+      grid-auto-columns:100%;
+    }
+    .launcher-scroll,.store-scroll,.hero-row,.shelf-row,.detail-scroll{
+      scrollbar-width:none;
+      -ms-overflow-style:none;
+    }
+    .launcher-scroll::-webkit-scrollbar,
+    .store-scroll::-webkit-scrollbar,
+    .hero-row::-webkit-scrollbar,
+    .shelf-row::-webkit-scrollbar,
+    .detail-scroll::-webkit-scrollbar{
+      width:0;
+      height:0;
+      display:none;
+    }
+    .launcher-page{
+      scroll-snap-align:start;
+      padding:0 18px 24px;
+      display:grid;
+      grid-template-columns:repeat(4,minmax(66px,1fr));
+      grid-auto-rows:98px;
+      align-content:start;
+      justify-items:center;
+      gap:12px 14px;
+    }
+    .launch-icon{
+      width:76px;
+      border:0;
+      background:transparent;
+      color:var(--ink);
+      display:grid;
+      justify-items:center;
+      gap:7px;
+      text-align:center;
+    }
+    .app-tile{
+      width:74px;
+      height:74px;
+      border-radius:21px;
+      display:grid;
+      place-items:center;
+      color:white;
+      font-size:33px;
+      font-weight:950;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.36),0 16px 34px rgba(65,76,111,.15);
+    }
+    .launch-icon span:last-child{
+      width:92px;
+      color:#303747;
+      font-size:12px;
+      line-height:1.15;
+      overflow:hidden;
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+    }
+    .page-dots{display:flex;justify-content:center;gap:6px;margin-top:-18px}
+    .page-dots i{width:6px;height:6px;border-radius:50%;background:#b8c2d6}
+    .page-dots i.active{background:#7e8aa3}
+    .home-empty{
+      grid-column:1/-1;
+      justify-self:start;
+      width:min(330px,calc(100vw - 40px));
+      border:1px dashed rgba(20,24,39,.14);
+      border-radius:24px;
+      background:rgba(255,255,255,.54);
+      color:#697286;
+      padding:16px;
+      font-size:13px;
+      line-height:1.35;
+      backdrop-filter:blur(20px);
+    }
+    .dock{
+      min-height:62px;
+      margin:0;
+      padding:6px 10px calc(6px + env(safe-area-inset-bottom));
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:4px;
+      background:rgba(255,255,255,.82);
+      border-radius:20px 20px 0 0;
+      box-shadow:0 -16px 42px rgba(62,70,98,.13);
+      backdrop-filter:blur(24px);
+      border-top:1px solid rgba(255,255,255,.74);
+    }
+    .dock button{
+      border:0;
+      border-radius:18px;
+      background:transparent;
+      color:#7c8495;
+      display:grid;
+      place-items:center;
+      gap:2px;
+      font-size:11px;
+      font-weight:850;
+    }
+    .dock svg{width:21px;height:21px}
+    .dock .active{background:#f7dce5;color:var(--pink)}
+
+    .store-top{
+      padding:calc(10px + env(safe-area-inset-top)) 16px 10px;
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      align-items:center;
+      gap:10px;
+      background:rgba(250,252,255,.72);
+      backdrop-filter:blur(22px);
+      border-bottom:1px solid rgba(20,24,39,.06);
+    }
+    .nav-btn{
+      min-width:42px;
+      height:38px;
+      border:0;
+      border-radius:999px;
+      background:rgba(233,238,248,.88);
+      color:var(--blue);
+      font-weight:950;
+    }
+    .store-title{display:grid;gap:2px}
+    .store-title b{font-size:25px;line-height:1;font-weight:950}
+    .store-title span{font-size:12px;color:var(--muted);font-weight:800}
+    .search{
+      grid-column:1/-1;
+      min-height:40px;
+      border:1px solid var(--line);
+      border-radius:13px;
+      background:rgba(255,255,255,.78);
+      color:var(--ink);
+      padding:0 13px;
+      outline:none;
+      box-shadow:0 8px 22px rgba(30,40,70,.05);
+    }
+    .store-scroll{
+      min-height:0;
+      overflow:auto;
+      display:grid;
+      gap:24px;
+      padding:14px 0 26px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .section{display:grid;gap:10px}
+    .section-head{display:flex;align-items:end;justify-content:space-between;padding:0 16px}
+    .section-head h2{font-size:22px;line-height:1;font-weight:950}
+    .section-head span{font-size:13px;color:var(--blue);font-weight:850}
+    .hero-row,.shelf-row{
+      display:grid;
+      grid-auto-flow:column;
+      overflow-x:auto;
+      overscroll-behavior-x:contain;
+      scroll-snap-type:x mandatory;
+      -webkit-overflow-scrolling:touch;
+      padding:0 16px 5px;
+      gap:12px;
+    }
+    .hero-row{grid-auto-columns:minmax(286px,86%)}
+    .shelf-row{grid-auto-columns:minmax(278px,80%)}
+    .feature{
+      min-height:214px;
+      border:0;
+      border-radius:28px;
+      padding:18px;
+      color:white;
+      text-align:left;
+      display:grid;
+      align-content:space-between;
+      box-shadow:var(--shadow);
+      position:relative;
+      overflow:hidden;
+      scroll-snap-align:center;
+    }
+    .feature:after,.detail-hero:after{content:"";position:absolute;right:-52px;bottom:-62px;width:196px;height:196px;border-radius:50%;background:rgba(255,255,255,.18)}
+    .feature .big-icon{font-size:47px;line-height:1}
+    .feature h3{font-size:28px;line-height:1;margin-top:7px;font-weight:950}
+    .feature p{font-size:13px;line-height:1.35;color:rgba(255,255,255,.87);max-width:320px}
+    .feature b{font-size:13px;letter-spacing:.7px}
+    .app-row{
+      border:1px solid var(--line);
+      border-radius:22px;
+      background:var(--panel);
+      box-shadow:0 14px 36px rgba(48,60,96,.10);
+      padding:12px;
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      gap:12px;
+      align-items:center;
+      scroll-snap-align:start;
+      text-align:left;
+      color:var(--ink);
+    }
+    .row-tile{
+      width:68px;
+      height:68px;
+      border-radius:19px;
+      display:grid;
+      place-items:center;
+      color:white;
+      font-size:29px;
+      font-weight:950;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+    }
+    .app-row b{display:block;font-size:15px;line-height:1.12}
+    .muted{color:var(--muted);font-size:12px;line-height:1.35}
+    .get{
+      border:0;
+      border-radius:999px;
+      background:#e9eef8;
+      color:var(--blue);
+      padding:8px 12px;
+      min-width:62px;
+      font-size:13px;
+      font-weight:950;
+      text-align:center;
+    }
+    .get.installed{background:#edf0f5;color:#667085}
+    .empty{
+      margin:0 16px;
+      border:1px dashed rgba(16,24,40,.16);
+      background:rgba(255,255,255,.54);
+      border-radius:24px;
+      padding:18px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.35;
+    }
+    .store-tabs{
+      min-height:62px;
+      padding:6px 12px calc(6px + env(safe-area-inset-bottom));
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:8px;
+      background:rgba(255,255,255,.84);
+      backdrop-filter:blur(24px);
+      border-top:1px solid rgba(255,255,255,.72);
+      box-shadow:0 -18px 44px rgba(73,78,112,.12);
+    }
+    .store-tabs button{
+      border:0;
+      background:transparent;
+      color:#778197;
+      border-radius:18px;
+      display:grid;
+      place-items:center;
+      gap:2px;
+      font-size:11px;
+      font-weight:850;
+    }
+    .store-tabs svg{width:22px;height:22px}
+    .store-tabs .active{background:#ecf4ff;color:var(--blue)}
+
+    .sheet{
+      position:fixed;
+      inset:0;
+      z-index:20;
+      display:none;
+      background:rgba(244,247,255,.98);
+      backdrop-filter:blur(20px);
+    }
+    .sheet.show{display:grid;grid-template-rows:auto minmax(0,1fr)}
+    .sheet-head{
+      height:58px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 14px;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.78);
+    }
+    .close{border:0;border-radius:999px;background:#e9eef8;color:var(--blue);font-weight:950;padding:9px 13px}
+    .detail-scroll{min-height:0;overflow:auto;padding:16px;display:grid;gap:14px;-webkit-overflow-scrolling:touch}
+    .detail-hero{
+      min-height:228px;
+      border-radius:30px;
+      color:white;
+      padding:22px;
+      display:grid;
+      align-content:space-between;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+    .detail-icon{font-size:60px;line-height:1}
+    .detail-hero h2{font-size:34px;line-height:1;font-weight:950}
+    .detail-hero p{color:rgba(255,255,255,.88);font-size:14px;line-height:1.35;max-width:430px}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    .primary,.secondary{
+      min-height:48px;
+      border:0;
+      border-radius:16px;
+      font-weight:950;
+    }
+    .primary{background:var(--blue);color:white}
+    .secondary{background:#e9eef8;color:var(--ink)}
+    .secondary.danger{color:#d92d20;background:#ffebe9}
+    .info{border:1px solid var(--line);background:var(--panel);border-radius:24px;padding:14px;display:grid;gap:10px;box-shadow:0 12px 34px rgba(48,60,96,.08)}
+    .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .meta div{border:1px solid var(--line);background:var(--soft);border-radius:16px;padding:10px;text-align:center}
+    .meta b{display:block;font-size:13px}.meta span{font-size:11px;color:var(--muted)}
+    iframe{width:100%;height:100%;border:0;background:white}
+    @media(max-width:380px){
+      .launcher-page{grid-template-columns:repeat(3,minmax(66px,1fr))}
+      .app-tile{width:70px;height:70px}
+    }
+    @media(min-width:760px){
+      .hero-row{grid-auto-columns:420px}
+      .shelf-row{grid-auto-columns:330px}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="screen active" id="homeScreen">
+      <header class="home-top">
+        <div class="logo">Ki<span>n</span>etik</div>
+        <button class="profile-pill" id="profilePill"><i class="live-dot"></i>Aldyth's</button>
+        <button class="avatar" aria-label="Profile">K</button>
+      </header>
+      <section class="home-main">
+        <div class="home-title">ALDYTH S · APPS</div>
+        <div class="launcher-scroll" id="launcherScroll"></div>
+        <div class="page-dots" id="pageDots"></div>
+      </section>
+      <nav class="dock" aria-label="Kinetik navigation">
+        <button><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Today</button>
+        <button><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="5" width="16" height="15" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 3v4M16 3v4M4 10h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Calendar</button>
+        <button id="dockStore"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Store</button>
+        <button class="active"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="6" height="6" rx="2" stroke="currentColor" stroke-width="2"/><rect x="14" y="4" width="6" height="6" rx="2" stroke="currentColor" stroke-width="2"/><rect x="4" y="14" width="6" height="6" rx="2" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="6" height="6" rx="2" stroke="currentColor" stroke-width="2"/></svg>Apps</button>
+        <button><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M5 21c1.5-4 12.5-4 14 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Me</button>
+      </nav>
+    </section>
+
+    <section class="screen" id="storeScreen">
+      <header class="store-top">
+        <button class="nav-btn" id="backHome">‹</button>
+        <div class="store-title"><b>Apps</b><span id="storeDate">Kinetik Store</span></div>
+        <button class="avatar" aria-label="Profile">K</button>
+        <input class="search" id="searchInput" placeholder="Search apps">
+      </header>
+      <section class="store-scroll" id="store"></section>
+      <nav class="store-tabs">
+        <button class="active" data-jump="featured"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l2.4 5.2L20 9l-4.1 4 1 5.8L12 16l-4.9 2.8 1-5.8L4 9l5.6-.8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>Today</button>
+        <button data-jump="installed"><svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="2" stroke="currentColor" stroke-width="2"/><rect x="13" y="4" width="7" height="7" rx="2" stroke="currentColor" stroke-width="2"/><rect x="4" y="13" width="7" height="7" rx="2" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="7" height="7" rx="2" stroke="currentColor" stroke-width="2"/></svg>Installed</button>
+        <button data-jump="all"><svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="6" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Search</button>
+      </nav>
+    </section>
+  </main>
+
+  <section class="sheet" id="detailSheet">
+    <div class="sheet-head"><b>App Details</b><button class="close" data-close="detailSheet">Done</button></div>
+    <div class="detail-scroll" id="detailBody"></div>
+  </section>
+
+  <section class="sheet" id="hostSheet">
+    <div class="sheet-head"><b id="hostTitle">App</b><button class="close" data-close="hostSheet">Done</button></div>
+    <iframe id="hostFrame" title="Installed app preview"></iframe>
+  </section>
+
+  <script>
+    const seedFiles = ["App_AgenticAITutorial.html","App_ClockTrainer.html","App_CodePhilosophyKids.html","App_CookSimple.html","App_DataDetective.html","App_EventPoll.html","App_GameCircleChess.html","App_GameCodeClash.html","App_GameEmojiParty.html","App_GameLadderRush.html","App_GameLuckySpin.html","App_GroceryBuddy.html","App_LearnBasketball.html","App_LearnGuitar.html","App_LearnPadel.html","App_LearnTennis.html","App_PadelAmericano.html","App_ProductivityArticulation.html","App_ProductivityBehaviour.html","App_ProductivityCharisma.html","App_ProductivityPresenter.html","App_ProductivityWisdom.html","App_TimesQuest.html","App_TimesTableQuest.html"];
+    const uninstalledKey = "kinetik_store_viewer_uninstalled_v1";
+    const storeApp = {appId:"kinetik-store",name:"Kinetik Store",shortName:"Store",icon:"◎",gradient:["#4b536b","#313a52"],tagline:"Discover local Kinetik apps",about:"Install local apps from their embedded manifests and launch them from the Kinetik home screen.",category:"system"};
+    const legacyMetadata = {
+      "App_ClockTrainer.html": {name:"Clock Trainer",shortName:"Clock",icon:"⏱️",gradient:["#38bdf8","#6366f1"],category:"productivity",tagline:"Run clean timed rounds.",about:"A simple timer for warmups, turns, practice blocks, and circle activities. Use it when the group needs a visible countdown without extra setup.",audience:"families, coaches, and small groups",circleTypes:["family","sports","learning"],worksWith:["offline","local timer"],minMembers:1},
+      "App_EventPoll.html": {name:"Event Poll",shortName:"Poll",icon:"🗳️",gradient:["#b14cff","#39d2c0"],category:"social",tagline:"Vote quickly as a circle.",about:"A lightweight polling app for choosing dates, activities, food, or simple group decisions. It is built for fast local votes before the app later connects to Circle data.",audience:"friends, families, and teams",circleTypes:["friends","family","community"],worksWith:["offline","local votes"],minMembers:2},
+      "App_PadelAmericano.html": {name:"Padel Americano",shortName:"Americano",icon:"🎾",gradient:["#20c8e8","#28c76f"],category:"sports",tagline:"Rotate padel matches easily.",about:"A padel Americano helper for setting players, rotating partners, tracking rounds, and keeping a casual tournament moving with less manual organizing.",audience:"padel groups and clubs",circleTypes:["sports","friends"],worksWith:["offline","local scoring"],minMembers:4},
+      "App_TimesQuest.html": {name:"Times Quest",shortName:"Times",icon:"✖️",gradient:["#ff9f43","#5e7cff"],category:"kids",tagline:"Practice tables in quick quests.",about:"A multiplication practice app for short focused rounds. It helps kids build times-table fluency through repeated answers, small wins, and simple local progress.",audience:"kids and parents",circleTypes:["family","learning"],worksWith:["offline","local progress"],minMembers:1}
+    };
+    const $ = (id) => document.getElementById(id);
+    const homeScreen = $("homeScreen");
+    const storeScreen = $("storeScreen");
+    const launcherScroll = $("launcherScroll");
+    const pageDots = $("pageDots");
+    const store = $("store");
+    const detailSheet = $("detailSheet");
+    const detailBody = $("detailBody");
+    const hostSheet = $("hostSheet");
+    const hostFrame = $("hostFrame");
+    const hostTitle = $("hostTitle");
+    const searchInput = $("searchInput");
+    let apps = [];
+    let uninstalled = new Set(readUninstalled());
+    let installed = new Set();
+    let query = "";
+
+    $("storeDate").textContent = new Date().toLocaleDateString(undefined, {weekday:"long", month:"long", day:"numeric"});
+
+    function readUninstalled(){
+      try { return JSON.parse(localStorage.getItem(uninstalledKey) || "[]"); }
+      catch { return []; }
+    }
+    function saveInstallState(){ localStorage.setItem(uninstalledKey, JSON.stringify([...uninstalled])); }
+    function syncInstalled(){ installed = new Set(apps.map((app) => app.appId).filter((appId) => !uninstalled.has(appId))); }
+
+    function requestText(url){
+      if (typeof fetch !== "function" && typeof XMLHttpRequest !== "function") return Promise.reject(new Error("No request API"));
+      const request = typeof fetch === "function"
+        ? fetch(url, {cache:"no-store"}).then((response) => response.ok ? response.text() : Promise.reject(new Error("HTTP " + response.status)))
+        : new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("GET", url, true);
+          xhr.onload = () => xhr.status >= 200 && xhr.status < 300 ? resolve(xhr.responseText) : reject(new Error("HTTP " + xhr.status));
+          xhr.onerror = () => reject(new Error("Network error"));
+          xhr.send();
+        });
+      return Promise.race([request, new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 700))]);
+    }
+
+    async function discoverFiles(){
+      const files = new Set();
+      try {
+        const html = await requestText("./");
+        [...html.matchAll(/href="([^"]*App_[^"]+\.html)"/g)].forEach((match) => files.add(decodeURIComponent(match[1]).replace(/^\.\//,"")));
+      } catch {}
+      if (!files.size) {
+        try { JSON.parse(await requestText("apps.json")).forEach((file) => files.add(file)); } catch {}
+      }
+      if (!files.size) seedFiles.forEach((file) => files.add(file));
+      return [...files].filter((file) => /^App_.*\.html$/i.test(file)).sort();
+    }
+
+    async function readManifest(file){
+      const html = await requestText(file);
+      const match = html.match(/<script type="application\/kinetik-app\+json">([\s\S]*?)<\/script>/);
+      if (!match) return fallbackApp(file, html);
+      return normalizeApp({...JSON.parse(match[1]), file});
+    }
+
+    function normalizeApp(app){
+      const fallback = fallbackApp(app.file || "");
+      return {
+        ...fallback,
+        ...app,
+        gradient:Array.isArray(app.gradient) && app.gradient.length > 1 ? app.gradient : fallback.gradient,
+        worksWith:Array.isArray(app.worksWith) ? app.worksWith : fallback.worksWith,
+        circleTypes:Array.isArray(app.circleTypes) ? app.circleTypes : fallback.circleTypes
+      };
+    }
+
+    function fallbackApp(file, html = ""){
+      const titleMatch = String(html || "").match(/<title>([\s\S]*?)<\/title>/i);
+      const title = titleMatch ? titleMatch[1].replace(/\s+-\s+Kinetik.*$/i,"").trim() : "";
+      const pretty = title || file.replace(/^App_/,"").replace(/\.html$/,"").replace(/([a-z])([A-Z])/g,"$1 $2");
+      const icons = {Clock:"⏱️",Event:"🗳️",Americano:"🎾",Chess:"♟️",Code:"⚡",Ladder:"🎲",Emoji:"😄",Lucky:"🎡",Padel:"🎾",Tennis:"🎾",Basketball:"🏀",Guitar:"🎸",Times:"✖️",Philosophy:"🧩",Data:"🔎",Grocery:"🛒",Cook:"🍳"};
+      const key = Object.keys(icons).find((item) => pretty.includes(item));
+      const category = pretty.includes("Game") ? "games" : pretty.includes("Grocery") ? "productivity" : pretty.includes("Cook") ? "cooking" : pretty.includes("Guitar") ? "music" : pretty.includes("Times") || pretty.includes("Philosophy") || pretty.includes("Data") ? "kids" : pretty.includes("Padel") || pretty.includes("Tennis") || pretty.includes("Basketball") || pretty.includes("Americano") ? "sports" : "apps";
+      const base = {file, appId:pretty.toLowerCase().replace(/\s+/g,"-"), name:pretty.replace(/^Game /,"").replace(/^Learn /,""), shortName:pretty.slice(0,12), icon:icons[key] || "✨", gradient:["#7c8cff","#30c6df"], category, tagline:`${categoryLabel(category)} app from ${file.replace(".html","")}.`, about:`${pretty} is a ${categoryLabel(category).toLowerCase()} app discovered from ${file}. It can be installed to the local Kinetik launcher and opened as a standalone HTML app.`, audience:"local Kinetik users", circleTypes:["family","friends"], worksWith:["offline","standalone"], minMembers:1};
+      return normalizeLegacy({...base, ...(legacyMetadata[file] || {})});
+    }
+
+    function normalizeLegacy(app){ return {...app, file:app.file || "", appId:app.appId || app.name.toLowerCase().replace(/\s+/g,"-")}; }
+
+    async function loadApps(){
+      renderHome();
+      store.innerHTML = `<div class="empty">Reading app manifests...</div>`;
+      const files = await discoverFiles();
+      apps = files.map((file) => fallbackApp(file));
+      syncInstalled();
+      renderHome();
+      renderStore();
+      apps = await Promise.all(files.map(async (file) => {
+        try { return await readManifest(file); }
+        catch { return fallbackApp(file); }
+      }));
+      syncInstalled();
+      renderHome();
+      renderStore();
+    }
+
+    function renderHome(){
+      const installedApps = apps.filter((app) => installed.has(app.appId));
+      const launcherApps = [storeApp, ...installedApps];
+      const pages = chunk(launcherApps, 16);
+      launcherScroll.innerHTML = pages.map((page, pageIndex) => `
+        <div class="launcher-page">
+          ${page.map((app) => launcherIcon(app)).join("")}
+          ${pageIndex === 0 && !installedApps.length ? `<div class="home-empty">Install apps from Kinetik Store and they will appear here as launcher icons.</div>` : ""}
+        </div>
+      `).join("");
+      pageDots.innerHTML = pages.map((_, index) => `<i class="${index === 0 ? "active" : ""}"></i>`).join("");
+      launcherScroll.querySelectorAll("[data-open-store]").forEach((button) => button.onclick = openStore);
+      launcherScroll.querySelectorAll("[data-open-app]").forEach((button) => button.onclick = () => {
+        const app = findApp(button.dataset.openApp);
+        if (app) openApp(app);
+      });
+    }
+
+    function launcherIcon(app){
+      const isStore = app.appId === storeApp.appId;
+      const label = app.shortName || app.name;
+      return `<button class="launch-icon" ${isStore ? "data-open-store" : `data-open-app="${escapeAttr(app.appId)}"`}>
+        <span class="app-tile" style="background:linear-gradient(135deg,${app.gradient[0]},${app.gradient[1]})">${escapeHtml(app.icon || app.name[0])}</span>
+        <span>${escapeHtml(label)}</span>
+      </button>`;
+    }
+
+    function visibleApps(){
+      if (!query) return apps;
+      const q = query.toLowerCase();
+      return apps.filter((app) => [app.name, app.tagline, app.about, app.category].join(" ").toLowerCase().includes(q));
+    }
+
+    function renderStore(){
+      const list = visibleApps();
+      const installedApps = list.filter((app) => installed.has(app.appId));
+      const groups = list.reduce((acc, app) => {
+        (acc[app.category || "apps"] ||= []).push(app);
+        return acc;
+      }, {});
+      const featured = list.slice(0, Math.min(6, list.length));
+      store.innerHTML = `
+        <section class="section" id="featured">
+          <div class="section-head"><h2>Today</h2><span>Manifest picks</span></div>
+          <div class="hero-row">${featured.map(featureCard).join("")}</div>
+        </section>
+        <section class="section" id="installed">
+          <div class="section-head"><h2>Installed</h2><span>${installedApps.length || "Empty"}</span></div>
+          ${installedApps.length ? `<div class="shelf-row">${installedApps.map(appRow).join("")}</div>` : `<div class="empty">Only Kinetik Store is on the launcher right now. Tap GET on an app to install it.</div>`}
+        </section>
+        ${Object.entries(groups).sort((a,b) => a[0].localeCompare(b[0])).map(([category, items]) => `
+          <section class="section" id="${category === "apps" ? "all" : escapeAttr(category)}">
+            <div class="section-head"><h2>${escapeHtml(categoryLabel(category))}</h2><span>${items.length}</span></div>
+            <div class="shelf-row">${items.map(appRow).join("")}</div>
+          </section>
+        `).join("")}
+      `;
+      bindStoreActions();
+    }
+
+    function featureCard(app){
+      return `<button class="feature" data-detail="${escapeAttr(app.appId)}" style="background:linear-gradient(135deg,${app.gradient[0]},${app.gradient[1]})">
+        <div><div class="big-icon">${escapeHtml(app.icon || app.name[0])}</div><h3>${escapeHtml(app.name)}</h3><p>${escapeHtml(cardSummary(app))}</p></div>
+        <b>${installed.has(app.appId) ? "INSTALLED" : "GET"}</b>
+      </button>`;
+    }
+
+    function appRow(app){
+      const isInstalled = installed.has(app.appId);
+      return `<div class="app-row" data-detail="${escapeAttr(app.appId)}">
+        <span class="row-tile" style="background:linear-gradient(135deg,${app.gradient[0]},${app.gradient[1]})">${escapeHtml(app.icon || app.name[0])}</span>
+        <div><b>${escapeHtml(app.name)}</b><div class="muted">${escapeHtml(rowSummary(app))}</div></div>
+        <button class="get ${isInstalled ? "installed" : ""}" data-install="${escapeAttr(app.appId)}">${isInstalled ? "OPEN" : "GET"}</button>
+      </div>`;
+    }
+
+    function bindStoreActions(){
+      store.querySelectorAll("[data-detail]").forEach((el) => {
+        el.onclick = (event) => {
+          if (event.target.closest("[data-install]")) return;
+          showDetail(el.dataset.detail);
+        };
+      });
+      store.querySelectorAll("[data-install]").forEach((button) => button.onclick = () => {
+        const app = findApp(button.dataset.install);
+        if (!app) return;
+        installed.has(app.appId) ? openApp(app) : installApp(app);
+      });
+    }
+
+    function showDetail(appId){
+      const app = findApp(appId);
+      if (!app) return;
+      const isInstalled = installed.has(app.appId);
+      detailBody.innerHTML = `
+        <div class="detail-hero" style="background:linear-gradient(135deg,${app.gradient[0]},${app.gradient[1]})">
+          <div><div class="detail-icon">${escapeHtml(app.icon || app.name[0])}</div><h2>${escapeHtml(app.name)}</h2><p>${escapeHtml(app.tagline || rowSummary(app))}</p></div>
+          <b>${escapeHtml(categoryLabel(app.category || "apps"))}</b>
+        </div>
+        <div class="actions">
+          <button class="primary" data-detail-install="${escapeAttr(app.appId)}">${isInstalled ? "Open" : "Install"}</button>
+          <button class="secondary ${isInstalled ? "danger" : ""}" data-detail-uninstall="${escapeAttr(app.appId)}">${isInstalled ? "Uninstall" : "Not Installed"}</button>
+        </div>
+        <section class="info"><h3>Description</h3>${descriptionMarkup(app)}</section>
+        <section class="info"><h3>Information</h3><div class="meta">
+          <div><b>${escapeHtml(app.audience || "all")}</b><span>Audience</span></div>
+          <div><b>${escapeHtml((app.circleTypes || []).join(", ") || "circle")}</b><span>Circles</span></div>
+          <div><b>${escapeHtml(String(app.minMembers || 1))}</b><span>Min members</span></div>
+        </div><p class="muted">File: ${escapeHtml(app.file)}<br>App ID: ${escapeHtml(app.appId)}<br>Works with: ${escapeHtml((app.worksWith || []).join(", ") || "standalone")}</p></section>
+      `;
+      detailBody.querySelector("[data-detail-install]").onclick = () => installed.has(app.appId) ? openApp(app) : installApp(app);
+      detailBody.querySelector("[data-detail-uninstall]").onclick = () => uninstallApp(app);
+      detailSheet.classList.add("show");
+    }
+
+    function installApp(app){
+      uninstalled.delete(app.appId);
+      syncInstalled();
+      saveInstallState();
+      renderHome();
+      renderStore();
+      showDetail(app.appId);
+    }
+
+    function uninstallApp(app){
+      if (!installed.has(app.appId)) return;
+      uninstalled.add(app.appId);
+      syncInstalled();
+      saveInstallState();
+      renderHome();
+      renderStore();
+      showDetail(app.appId);
+    }
+
+    function openApp(app){
+      if (!installed.has(app.appId)) installApp(app);
+      hostTitle.textContent = app.name;
+      hostFrame.src = app.file;
+      hostSheet.classList.add("show");
+    }
+
+    function openStore(){
+      homeScreen.classList.remove("active");
+      storeScreen.classList.add("active");
+      renderStore();
+    }
+
+    function closeStore(){
+      storeScreen.classList.remove("active");
+      homeScreen.classList.add("active");
+      renderHome();
+    }
+
+    function findApp(appId){ return apps.find((app) => app.appId === appId); }
+    function cardSummary(app){ return app.about || app.tagline || rowSummary(app); }
+    function rowSummary(app){ return app.tagline || app.about || `${categoryLabel(app.category)} app for ${app.audience || "local Kinetik users"}.`; }
+    function descriptionMarkup(app){
+      const parts = [];
+      if (app.about) parts.push(app.about);
+      if (app.tagline && !String(app.about || "").includes(app.tagline)) parts.push(app.tagline);
+      if (app.audience) parts.push(`Audience: ${app.audience}.`);
+      if (Array.isArray(app.circleTypes) && app.circleTypes.length) parts.push(`Circle fit: ${app.circleTypes.join(", ")}.`);
+      if (Array.isArray(app.worksWith) && app.worksWith.length) parts.push(`Works with: ${app.worksWith.join(", ")}.`);
+      if (!parts.length) parts.push(`${app.name} is a ${categoryLabel(app.category).toLowerCase()} app installed from ${app.file}.`);
+      return parts.map((part) => `<p class="muted">${escapeHtml(part)}</p>`).join("");
+    }
+    function chunk(items, size){
+      const out = [];
+      for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+      return out.length ? out : [[]];
+    }
+    function categoryLabel(category){ return String(category || "apps").split(/[-_ ]+/).map((part) => part ? part.charAt(0).toUpperCase() + part.slice(1) : "").join(" "); }
+    function escapeHtml(text){ return String(text ?? "").replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+    function escapeAttr(text){ return escapeHtml(text).replace(/`/g, "&#96;"); }
+
+    $("dockStore").onclick = openStore;
+    $("profilePill").onclick = openStore;
+    $("backHome").onclick = closeStore;
+    launcherScroll.addEventListener("scroll", () => {
+      const width = Math.max(1, launcherScroll.clientWidth);
+      const active = Math.round(launcherScroll.scrollLeft / width);
+      pageDots.querySelectorAll("i").forEach((dot, index) => dot.classList.toggle("active", index === active));
+    });
+    document.querySelectorAll("[data-close]").forEach((button) => button.onclick = () => {
+      document.getElementById(button.dataset.close).classList.remove("show");
+      if (button.dataset.close === "hostSheet") hostFrame.src = "about:blank";
+    });
+    document.querySelectorAll("[data-jump]").forEach((button) => button.onclick = () => {
+      document.querySelectorAll(".store-tabs button").forEach((tab) => tab.classList.toggle("active", tab === button));
+      const target = document.getElementById(button.dataset.jump) || document.querySelector(".section");
+      target?.scrollIntoView({behavior:"smooth", block:"start"});
+    });
+    searchInput.oninput = () => { query = searchInput.value.trim(); renderStore(); };
+    loadApps();
+  </script>
+</body>
+</html>
