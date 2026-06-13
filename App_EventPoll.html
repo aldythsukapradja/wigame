@@ -1,0 +1,447 @@
+<!--
+KINETIK APP STANDARD v0.1
+
+You are editing a modular single-file app inside the Kinetik ecosystem.
+
+PRODUCT:
+Kinetik is a private life app for Family and Friends circles.
+
+THIS FILE:
+Standalone app file: App_EventPoll.html
+
+RULES:
+1. Keep this app as a single HTML file unless explicitly requested otherwise.
+2. The app must work in embedded mode inside Kinetik.html and standalone PWA mode.
+3. Use circle-based logic, not family-only logic.
+4. Use circleId, circleType, personId.
+5. Do not directly depend on Firebase.
+6. Prototype backend is Google Sheets via Apps Script.
+7. Use DataAPI / app bridge for persistent operations.
+8. Store app-specific data in AppRecords using circleId, appId, collection, payloadJson.
+9. Support light/dark theme with CSS variables.
+10. Maintain premium, clean, mobile-first UI.
+11. Preserve PWA meta tags and service worker registration.
+
+REACT/TYPESCRIPT APP SCALE-UP NOTE:
+- This single-file app should later become a React feature module or standalone route.
+- It must keep using AppBridge/DataAPI contracts.
+- It must not access another circle's data.
+- It must store app-specific data in AppRecords using circleId, appId, collection, payloadJson.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#db4c81">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Poll">
+  <link rel="manifest" href="./manifest_eventpoll.webmanifest">
+  <title>Event Poll - Kinetik</title>
+  <style>
+    :root{
+      color-scheme:light;
+      --bg:#fff1f6;
+      --ink:#25111a;
+      --muted:rgba(37,17,26,.64);
+      --line:rgba(37,17,26,.14);
+      --panel:rgba(255,255,255,.78);
+      --soft:rgba(255,255,255,.55);
+      --accent:#db4c81;
+      --violet:#7357d8;
+      --cyan:#1bb8d6;
+      --green:#1cbf7b;
+      --amber:#e69a22;
+      --shadow:0 20px 60px rgba(151,50,91,.17);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    [data-theme="dark"]{
+      color-scheme:dark;
+      --bg:#190b13;
+      --ink:#fff7fb;
+      --muted:rgba(255,247,251,.68);
+      --line:rgba(255,255,255,.14);
+      --panel:rgba(37,16,27,.74);
+      --soft:rgba(255,255,255,.08);
+      --shadow:0 24px 70px rgba(0,0,0,.36);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      overflow:hidden;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 18% 8%,rgba(219,76,129,.22),transparent 34%),
+        radial-gradient(circle at 88% 10%,rgba(115,87,216,.18),transparent 30%),
+        var(--bg);
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{height:100dvh;max-width:980px;margin:0 auto;padding:12px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;overflow:hidden}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .mark{width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--violet));box-shadow:0 12px 34px rgba(219,76,129,.24);position:relative;flex:0 0 auto}
+    .mark:after{content:"";position:absolute;left:10px;top:10px;width:18px;height:18px;border:2px solid white;border-radius:50%;box-shadow:10px 8px 0 -5px white}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:22px;line-height:1;font-weight:900}
+    h2{font-size:17px;line-height:1.1}
+    h3{font-size:14px;line-height:1.1}
+    .small{font-size:12px;color:var(--muted)}
+    .chip{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:999px;padding:7px 10px;font-size:12px;white-space:nowrap}
+    .btn{border:0;border-radius:14px;padding:10px 12px;min-height:40px;color:white;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--violet))}
+    .btn.secondary{background:var(--soft);border:1px solid var(--line);color:var(--ink)}
+    .card{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(22px) saturate(1.2);box-shadow:var(--shadow);border-radius:22px;padding:13px;overflow:hidden}
+    .flat{box-shadow:none;background:var(--soft)}
+    .main{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;overflow:hidden}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+    .tabs button{border:1px solid var(--line);background:var(--soft);color:var(--muted);border-radius:14px;padding:9px 6px;font-weight:800}
+    .tabs button.active{background:linear-gradient(135deg,var(--accent),var(--violet));color:white;border-color:transparent}
+    .view{display:none;min-height:0;overflow:hidden}
+    .view.active{display:grid;gap:10px}
+    .create-view{grid-template-rows:auto minmax(0,1fr) auto}
+    .vote-view,.share-view{grid-template-rows:auto minmax(0,1fr) auto}
+    .row{display:flex;align-items:center;gap:8px}
+    .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .grid{display:grid;gap:8px}
+    .two{grid-template-columns:1fr 1fr}
+    input,select{width:100%;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:11px}
+    .options{min-height:0;overflow:auto;display:grid;gap:8px;overscroll-behavior:contain}
+    .option,.result{border:1px solid var(--line);background:var(--soft);border-radius:18px;padding:10px;display:grid;gap:8px}
+    .option-line{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+    .result-bar{height:10px;border-radius:999px;background:rgba(0,0,0,.08);overflow:hidden}
+    [data-theme="dark"] .result-bar{background:rgba(255,255,255,.1)}
+    .result-bar span{display:block;height:100%;background:linear-gradient(135deg,var(--accent),var(--violet));border-radius:999px}
+    .preview{display:grid;place-items:center;min-height:0;overflow:auto}
+    .preview img{max-width:100%;border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow)}
+    canvas{display:none}
+    @media(min-width:760px){
+      .app{padding:18px}
+      .create-view{grid-template-columns:.95fr 1.05fr;grid-template-rows:minmax(0,1fr) auto}
+      .create-view .card:first-child{grid-row:1 / -1}
+      .tabs{max-width:440px}
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <main class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="mark"></div>
+        <div style="min-width:0">
+          <h1>Event Poll</h1>
+          <div class="small" id="contextLine">Standalone demo</div>
+        </div>
+      </div>
+      <button class="chip" id="doneBtn">Done</button>
+    </header>
+
+    <section class="main">
+      <nav class="tabs">
+        <button class="active" data-view="create">Create</button>
+        <button data-view="vote">Vote</button>
+        <button data-view="share">Share</button>
+      </nav>
+
+      <section class="view create-view active" id="view-create">
+        <div class="card">
+          <div class="between"><h2>Poll</h2><span class="chip" id="pollState">draft</span></div>
+          <div class="grid" style="margin-top:10px">
+            <input id="pollTitle" value="Padel Friday?" placeholder="Question">
+            <div class="two grid">
+              <input id="pollDate" type="date">
+              <input id="pollTime" type="time" value="20:00">
+            </div>
+            <input id="pollLocation" value="Padel court" placeholder="Location">
+          </div>
+        </div>
+        <div class="card flat">
+          <div class="between"><h2>Options</h2><button class="chip" id="addOption">Add Option</button></div>
+          <div class="options" id="options" style="margin-top:10px"></div>
+        </div>
+        <button class="btn" id="savePoll">Save Poll</button>
+      </section>
+
+      <section class="view vote-view" id="view-vote">
+        <div class="card between">
+          <div><h2 id="voteTitle">Padel Friday?</h2><p class="small" id="voteMeta">Vote for the best time</p></div>
+          <button class="btn secondary" id="calendarBtn">Add Winner</button>
+        </div>
+        <div class="options" id="voteOptions"></div>
+        <button class="btn" id="fakeVoteBtn">Add Demo Vote</button>
+      </section>
+
+      <section class="view share-view" id="view-share">
+        <div class="card between">
+          <div><h2>Invite Card</h2><p class="small">Share the poll outside Kinetik</p></div>
+          <button class="btn" id="renderShare">Render</button>
+        </div>
+        <div class="preview card flat" id="preview"><p class="small">Render an invite card after saving the poll.</p></div>
+        <div class="row">
+          <button class="btn secondary" id="downloadBtn">Download PNG</button>
+          <button class="btn secondary" id="shareBtn">Share</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <canvas id="shareCanvas" width="1080" height="1350"></canvas>
+
+  <script>
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    const state = {
+      appId:"event-poll",
+      circleId:"standalone_demo",
+      circleType:"friends",
+      personId:"person_demo",
+      theme:"light",
+      poll:{
+        id:"poll_demo",
+        title:"Padel Friday?",
+        location:"Padel court",
+        options:[
+          {id:"opt_1",label:"Friday 20:00",date:"",time:"20:00",votes:["Aldyth","Omar"]},
+          {id:"opt_2",label:"Friday 21:00",date:"",time:"21:00",votes:["Faisal"]},
+          {id:"opt_3",label:"Saturday 08:00",date:"",time:"08:00",votes:[]}
+        ],
+        saved:false
+      },
+      shareUrl:""
+    };
+    const Bridge = {
+      send(type, payload = {}) {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({type, appId:state.appId, payload}, "*");
+        }
+      }
+    };
+    const todayISO = () => {
+      const date = new Date();
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      return date.toISOString().slice(0,10);
+    };
+    window.addEventListener("message", (event) => {
+      const msg = event.data || {};
+      if (msg.type !== "INIT_APP") return;
+      Object.assign(state, msg.payload || {});
+      document.body.dataset.theme = state.theme || "light";
+      $("#contextLine").textContent = `${state.circleType} circle - ${state.backendMode || "local-demo"}`;
+      render();
+    });
+    function switchView(view) {
+      $$(".view").forEach((el) => el.classList.remove("active"));
+      $(`#view-${view}`).classList.add("active");
+      $$("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+    }
+    function syncFormToState() {
+      state.poll.title = $("#pollTitle").value || "New poll";
+      state.poll.location = $("#pollLocation").value || "";
+      const date = $("#pollDate").value || todayISO();
+      const time = $("#pollTime").value || "20:00";
+      state.poll.options.forEach((option, index) => {
+        if (!option.date) option.date = date;
+        if (!option.time) option.time = index === 0 ? time : option.time;
+      });
+    }
+    function render() {
+      if (!$("#pollDate").value) $("#pollDate").value = todayISO();
+      $("#pollTitle").value = state.poll.title;
+      $("#pollLocation").value = state.poll.location;
+      $("#pollState").textContent = state.poll.saved ? "saved" : "draft";
+      $("#options").innerHTML = state.poll.options.map((option) => `<div class="option">
+        <div class="option-line">
+          <input data-label="${option.id}" value="${option.label}" placeholder="Option label">
+          <button class="chip" data-remove="${option.id}">Remove</button>
+        </div>
+        <div class="two grid"><input type="date" data-date="${option.id}" value="${option.date || $("#pollDate").value || todayISO()}"><input type="time" data-time="${option.id}" value="${option.time || "20:00"}"></div>
+      </div>`).join("");
+      $$("[data-label]").forEach((input) => input.oninput = () => {
+        optionById(input.dataset.label).label = input.value;
+        state.poll.saved = false;
+      });
+      $$("[data-date]").forEach((input) => input.oninput = () => {
+        optionById(input.dataset.date).date = input.value;
+        state.poll.saved = false;
+      });
+      $$("[data-time]").forEach((input) => input.oninput = () => {
+        optionById(input.dataset.time).time = input.value;
+        state.poll.saved = false;
+      });
+      $$("[data-remove]").forEach((button) => button.onclick = () => {
+        state.poll.options = state.poll.options.filter((option) => option.id !== button.dataset.remove);
+        render();
+      });
+      renderVote();
+    }
+    function renderVote() {
+      const best = winningOption();
+      $("#voteTitle").textContent = state.poll.title;
+      $("#voteMeta").textContent = best ? `Leading: ${best.label}` : "Vote for the best time";
+      const maxVotes = Math.max(1, ...state.poll.options.map((option) => option.votes.length));
+      $("#voteOptions").innerHTML = state.poll.options.map((option) => `<div class="result">
+        <div class="between">
+          <div><b>${option.label}</b><div class="small">${option.date || todayISO()} ${option.time || "20:00"} - ${option.votes.length} vote${option.votes.length === 1 ? "" : "s"}</div></div>
+          <button class="chip" data-vote="${option.id}">Vote</button>
+        </div>
+        <div class="result-bar"><span style="width:${Math.round(option.votes.length / maxVotes * 100)}%"></span></div>
+        <div class="small">${option.votes.join(", ") || "No votes yet"}</div>
+      </div>`).join("");
+      $$("[data-vote]").forEach((button) => button.onclick = () => {
+        const option = optionById(button.dataset.vote);
+        const voter = state.personId === "person_demo" ? `Guest ${option.votes.length + 1}` : state.personId;
+        if (!option.votes.includes(voter)) option.votes.push(voter);
+        state.poll.saved = false;
+        render();
+      });
+    }
+    function optionById(id) {
+      return state.poll.options.find((option) => option.id === id);
+    }
+    function winningOption() {
+      return state.poll.options.slice().sort((a,b) => b.votes.length - a.votes.length)[0];
+    }
+    function addOption() {
+      state.poll.options.push({id:`opt_${Math.random().toString(36).slice(2,7)}`,label:"New option",date:$("#pollDate").value || todayISO(),time:$("#pollTime").value || "20:00",votes:[]});
+      state.poll.saved = false;
+      render();
+    }
+    function savePoll() {
+      syncFormToState();
+      state.poll.saved = true;
+      Bridge.send("DATA_CREATE", {collection:"polls", payload:{...state.poll, savedAt:new Date().toISOString()}});
+      Bridge.send("SHOW_TOAST", {message:"Poll saved."});
+      render();
+      switchView("vote");
+    }
+    function addWinnerToCalendar() {
+      const winner = winningOption();
+      if (!winner) return;
+      const start = winner.time || "20:00";
+      const endDate = new Date(`2026-01-01T${start}:00`);
+      endDate.setHours(endDate.getHours() + 2);
+      Bridge.send("CREATE_CALENDAR_EVENT", {
+        title:state.poll.title,
+        date:winner.date || todayISO(),
+        startTime:start,
+        endTime:endDate.toTimeString().slice(0,5),
+        category:state.poll.title.toLowerCase().includes("padel") ? "padel" : "social",
+        location:state.poll.location,
+        prep:state.poll.title.toLowerCase().includes("padel") ? ["Book court","Confirm players"] : []
+      });
+    }
+    function renderShareCard() {
+      syncFormToState();
+      const canvas = $("#shareCanvas");
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      const gradient = ctx.createLinearGradient(0,0,w,h);
+      gradient.addColorStop(0,"#5c1230");
+      gradient.addColorStop(.55,"#7135a7");
+      gradient.addColorStop(1,"#0f5a68");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0,0,w,h);
+      ctx.fillStyle = "rgba(255,255,255,.10)";
+      for (let i = 0; i < 16; i++) {
+        ctx.beginPath();
+        ctx.arc((i * 97) % w, 130 + ((i * 151) % 1000), 110 + (i % 5) * 26, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 76px Inter, Arial";
+      wrapText(ctx, state.poll.title, 80, 130, 920, 82);
+      ctx.font = "500 32px Inter, Arial";
+      ctx.fillStyle = "rgba(255,255,255,.78)";
+      ctx.fillText(state.poll.location || "Kinetik circle", 84, 300);
+      state.poll.options.slice(0,5).forEach((option, index) => {
+        const y = 420 + index * 122;
+        ctx.fillStyle = "rgba(255,255,255,.14)";
+        roundRect(ctx, 80, y - 70, 920, 92, 28);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "850 42px Inter, Arial";
+        ctx.fillText(option.label, 120, y - 16);
+        ctx.font = "500 26px Inter, Arial";
+        ctx.fillStyle = "rgba(255,255,255,.76)";
+        ctx.fillText(`${option.date || todayISO()} ${option.time || "20:00"} - ${option.votes.length} votes`, 120, y + 22);
+      });
+      ctx.fillStyle = "rgba(255,255,255,.8)";
+      ctx.font = "800 32px Inter, Arial";
+      ctx.fillText("Tap to vote in Kinetik", 80, h - 110);
+      ctx.font = "700 28px Inter, Arial";
+      ctx.fillText("Kinetik", 80, h - 62);
+      state.shareUrl = canvas.toDataURL("image/png");
+      $("#preview").innerHTML = `<img src="${state.shareUrl}" alt="Event Poll invite card">`;
+      return state.shareUrl;
+    }
+    function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = String(text).split(" ");
+      let line = "";
+      words.forEach((word) => {
+        const test = `${line}${word} `;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          ctx.fillText(line, x, y);
+          line = `${word} `;
+          y += lineHeight;
+        } else {
+          line = test;
+        }
+      });
+      ctx.fillText(line, x, y);
+    }
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + width, y, x + width, y + height, radius);
+      ctx.arcTo(x + width, y + height, x, y + height, radius);
+      ctx.arcTo(x, y + height, x, y, radius);
+      ctx.arcTo(x, y, x + width, y, radius);
+      ctx.closePath();
+    }
+    function downloadShare() {
+      if (!state.shareUrl) renderShareCard();
+      const a = document.createElement("a");
+      a.href = state.shareUrl;
+      a.download = "kinetik-event-poll.png";
+      a.click();
+    }
+    async function shareCard() {
+      if (!state.shareUrl) renderShareCard();
+      try {
+        const blob = await (await fetch(state.shareUrl)).blob();
+        const file = new File([blob], "kinetik-event-poll.png", {type:"image/png"});
+        if (navigator.canShare && navigator.canShare({files:[file]})) {
+          await navigator.share({title:state.poll.title, files:[file]});
+        } else {
+          downloadShare();
+        }
+      } catch {
+        downloadShare();
+      }
+    }
+    $("#pollDate").value = todayISO();
+    $("#addOption").onclick = addOption;
+    $("#savePoll").onclick = savePoll;
+    $("#fakeVoteBtn").onclick = () => {
+      const target = state.poll.options[Math.floor(Math.random() * state.poll.options.length)];
+      target.votes.push(["Aldyth","Omar","Noora","Faisal","Rafi"][Math.floor(Math.random() * 5)]);
+      render();
+    };
+    $("#calendarBtn").onclick = addWinnerToCalendar;
+    $("#renderShare").onclick = renderShareCard;
+    $("#downloadBtn").onclick = downloadShare;
+    $("#shareBtn").onclick = shareCard;
+    $("#doneBtn").onclick = () => Bridge.send("APP_DONE");
+    ["pollTitle","pollDate","pollTime","pollLocation"].forEach((id) => {
+      $(`#${id}`).oninput = () => {
+        state.poll.saved = false;
+        syncFormToState();
+        renderVote();
+      };
+    });
+    $$("[data-view]").forEach((button) => button.onclick = () => switchView(button.dataset.view));
+    render();
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./PWA_SW.js").catch(() => {});
+  </script>
+</body>
+</html>

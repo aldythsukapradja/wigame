@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#8b6cff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Lucky Spin">
+  <title>Lucky Spin - Kinetik</title>
+  <script type="application/kinetik-app+json">
+  {
+    "appId": "game-lucky-spin",
+    "name": "Lucky Spin",
+    "shortName": "LuckySpin",
+    "icon": "🎡",
+    "gradient": ["#8b6cff", "#ffbd4a"],
+    "category": "games",
+    "tagline": "Spin letters, solve phrases.",
+    "about": "A social word-wheel game for family and friends. Spin for points, guess letters, solve themed phrases, and keep local circle-ready scores.",
+    "audience": "all",
+    "circleTypes": ["family", "friends"],
+    "worksWith": ["offline", "standalone"],
+    "status": "live",
+    "minMembers": 1
+  }
+  </script>
+  <style>
+    :root{
+      color-scheme:light;
+      --bg:#f7f3ff;
+      --ink:#20182e;
+      --muted:rgba(32,24,46,.62);
+      --panel:rgba(255,255,255,.80);
+      --soft:rgba(255,255,255,.60);
+      --line:rgba(49,33,72,.13);
+      --accent:#8b6cff;
+      --accent2:#ffbd4a;
+      --pink:#ff6fae;
+      --good:#26bf9a;
+      --danger:#e85f7a;
+      --shadow:0 22px 60px rgba(95,72,168,.17);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    [data-theme="dark"]{
+      color-scheme:dark;
+      --bg:#100c18;
+      --ink:#fbf8ff;
+      --muted:rgba(251,248,255,.66);
+      --panel:rgba(28,20,42,.80);
+      --soft:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.13);
+      --shadow:0 24px 70px rgba(0,0,0,.38);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      min-height:100dvh;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 14% 8%,rgba(139,108,255,.24),transparent 34%),
+        radial-gradient(circle at 88% 10%,rgba(255,189,74,.23),transparent 31%),
+        linear-gradient(180deg,rgba(255,255,255,.25),transparent 50%),
+        var(--bg);
+      overflow:hidden;
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{
+      width:min(100%,720px);
+      height:100dvh;
+      margin:0 auto;
+      padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr);
+      gap:10px;
+      overflow:hidden;
+    }
+    .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .brand{display:flex;align-items:center;gap:9px;min-width:0}
+    .mark{width:38px;height:38px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 30px rgba(139,108,255,.23);display:grid;place-items:center;color:white;font-size:22px;font-weight:950}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:21px;line-height:1;font-weight:950;letter-spacing:0}
+    h2{font-size:18px;line-height:1.1}
+    h3{font-size:14px;line-height:1.1}
+    .small{font-size:12px;color:var(--muted);line-height:1.25}
+    .screen{display:none;min-height:0;overflow:hidden}
+    .screen.active{display:grid}
+    .setup{align-content:center;gap:12px}
+    .game{grid-template-rows:auto auto minmax(0,1fr) auto;gap:9px}
+    .panel{
+      border:1px solid var(--line);
+      background:var(--panel);
+      backdrop-filter:blur(24px) saturate(1.16);
+      box-shadow:var(--shadow);
+      border-radius:24px;
+      padding:14px;
+      overflow:hidden;
+    }
+    .grid{display:grid;gap:9px}
+    .two{grid-template-columns:1fr 1fr}
+    .row{display:flex;align-items:center;gap:8px}
+    .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    label{display:grid;gap:6px;font-size:12px;font-weight:850;color:var(--muted)}
+    input,select{
+      width:100%;
+      min-height:44px;
+      border:1px solid var(--line);
+      background:var(--soft);
+      color:var(--ink);
+      border-radius:15px;
+      padding:11px 12px;
+      outline:none;
+    }
+    input:focus,select:focus{border-color:rgba(139,108,255,.5);box-shadow:0 0 0 4px rgba(139,108,255,.13)}
+    .btn{
+      min-height:44px;
+      border:0;
+      border-radius:15px;
+      padding:10px 13px;
+      color:white;
+      background:linear-gradient(135deg,var(--accent),#6d55ee);
+      box-shadow:0 12px 28px rgba(139,108,255,.23);
+      font-weight:950;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      touch-action:manipulation;
+    }
+    .btn.secondary{background:var(--soft);border:1px solid var(--line);color:var(--ink);box-shadow:none}
+    .btn.gold{background:linear-gradient(135deg,var(--accent2),#ff8b5a);color:#271500}
+    .icon-btn{width:44px;height:44px;border-radius:15px;padding:0;flex:0 0 auto}
+    .names{max-height:30dvh;overflow:auto;display:grid;gap:8px;padding-right:2px}
+    .players{display:flex;gap:7px;overflow:auto;padding:1px 2px 3px}
+    .player-chip{
+      min-width:max-content;
+      border:1px solid var(--line);
+      background:var(--soft);
+      color:var(--muted);
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      font-weight:850;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .player-chip.active{color:var(--ink);background:var(--panel);box-shadow:0 8px 20px rgba(0,0,0,.07)}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+    .phrase{
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      gap:7px 9px;
+      padding:6px 2px;
+    }
+    .word{display:flex;gap:4px}
+    .tile{
+      width:clamp(25px,7vw,38px);
+      height:clamp(34px,9vw,48px);
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:linear-gradient(180deg,rgba(255,255,255,.92),rgba(255,255,255,.62));
+      color:var(--ink);
+      display:grid;
+      place-items:center;
+      font-size:clamp(17px,5vw,25px);
+      font-weight:950;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 8px 18px rgba(0,0,0,.06);
+      text-transform:uppercase;
+    }
+    [data-theme="dark"] .tile{background:rgba(255,255,255,.10)}
+    .tile.blank{color:transparent}
+    .wheel-zone{min-height:0;display:grid;grid-template-columns:1fr;place-items:center;align-content:center;gap:6px;overflow:hidden}
+    .wheel-wrap{
+      position:relative;
+      width:min(50vw,220px);
+      aspect-ratio:1;
+      display:grid;
+      place-items:center;
+    }
+    .pointer{
+      position:absolute;
+      top:-4px;
+      left:50%;
+      transform:translateX(-50%);
+      width:0;
+      height:0;
+      border-left:12px solid transparent;
+      border-right:12px solid transparent;
+      border-top:22px solid var(--pink);
+      filter:drop-shadow(0 5px 8px rgba(0,0,0,.18));
+      z-index:3;
+    }
+    .wheel{
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      border:8px solid rgba(255,255,255,.82);
+      background:conic-gradient(#8b6cff 0 30deg,#ffbd4a 30deg 60deg,#26bf9a 60deg 90deg,#ff6fae 90deg 120deg,#5f8cff 120deg 150deg,#e85f7a 150deg 180deg,#8b6cff 180deg 210deg,#ffbd4a 210deg 240deg,#26bf9a 240deg 270deg,#ff6fae 270deg 300deg,#5f8cff 300deg 330deg,#e85f7a 330deg 360deg);
+      box-shadow:0 20px 45px rgba(55,34,111,.24),inset 0 1px 0 rgba(255,255,255,.9);
+      transform:rotate(var(--rot,0deg));
+      transition:transform 2.2s cubic-bezier(.16,.82,.22,1);
+    }
+    .wheel:after{
+      content:"";
+      position:absolute;
+      inset:34%;
+      border-radius:50%;
+      background:var(--panel);
+      border:1px solid rgba(255,255,255,.7);
+      box-shadow:0 10px 24px rgba(0,0,0,.14);
+    }
+    .wheel-value{
+      position:relative;
+      z-index:4;
+      width:min(28vw,112px);
+      height:min(28vw,112px);
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      text-align:center;
+      padding:12px;
+      background:var(--panel);
+      border:1px solid rgba(255,255,255,.72);
+      box-shadow:0 12px 28px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.55);
+      color:var(--ink);
+      font-size:clamp(14px,4vw,24px);
+      font-weight:950;
+      line-height:1;
+    }
+    .wheel-label{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:rotate(var(--a)) translateY(calc(-1 * min(20vw,88px))) rotate(90deg);
+      transform-origin:0 0;
+      color:white;
+      font-size:10px;
+      font-weight:950;
+      text-shadow:0 1px 3px rgba(0,0,0,.38);
+      z-index:2;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+    .result-pill{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:900;color:var(--muted)}
+    .letters{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+    .letters button{
+      min-height:32px;
+      border:1px solid var(--line);
+      background:var(--soft);
+      color:var(--ink);
+      border-radius:10px;
+      font-weight:950;
+      padding:0;
+    }
+    .letters button:disabled{opacity:.36;cursor:default}
+    .solve{display:grid;grid-template-columns:1fr auto;gap:8px}
+    .drawer{
+      position:fixed;
+      inset:auto 10px calc(10px + env(safe-area-inset-bottom)) 10px;
+      max-width:660px;
+      margin:0 auto;
+      transform:translateY(120%);
+      transition:transform .22s ease;
+      z-index:10;
+    }
+    .drawer.open{transform:translateY(0)}
+    .drawer-list{max-height:48dvh;overflow:auto;display:grid;gap:7px;margin-top:10px}
+    .leader{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;border:1px solid var(--line);background:var(--soft);border-radius:15px;padding:9px}
+    .rank{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-weight:950;font-size:12px}
+    .modal{
+      position:fixed;
+      inset:0;
+      display:none;
+      place-items:center;
+      background:rgba(8,12,20,.32);
+      backdrop-filter:blur(12px);
+      z-index:15;
+      padding:18px;
+    }
+    .modal.show{display:grid}
+    .modal-card{width:min(100%,360px);display:grid;gap:12px;text-align:center}
+    .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translate(-50%,120px);background:#1e1730;color:white;border-radius:999px;padding:10px 14px;box-shadow:0 12px 34px rgba(0,0,0,.24);font-size:13px;font-weight:850;transition:transform .22s ease;z-index:20}
+    .toast.show{transform:translate(-50%,0)}
+    @media(max-height:760px){
+      .app{gap:7px;padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+      .panel{padding:11px}
+      .wheel-wrap{width:min(42vw,168px)}
+      .wheel-value{width:min(22vw,88px);height:min(22vw,88px)}
+      .letters button{min-height:29px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="mark">🎡</div>
+        <div>
+          <h1>Lucky Spin</h1>
+          <p class="small" id="circleLabel">Standalone circle</p>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn secondary icon-btn" id="leaderBtn" aria-label="Open leaderboard">🏆</button>
+        <button class="btn secondary icon-btn" id="themeBtn" aria-label="Toggle theme">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v2.2M12 18.8V21M4.4 4.4 6 6M18 18l1.6 1.6M3 12h2.2M18.8 12H21M4.4 19.6 6 18M18 6l1.6-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="screen setup active" id="setupScreen">
+      <div class="panel grid">
+        <div>
+          <h2>Start spin</h2>
+          <p class="small">Spin the wheel, pick letters, solve the phrase.</p>
+        </div>
+        <div class="grid two">
+          <label>Players
+            <select id="playerCount"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
+          </label>
+          <label>Category
+            <select id="categorySelect"></select>
+          </label>
+        </div>
+        <div class="names" id="nameFields"></div>
+        <button class="btn" id="startBtn">Start Game</button>
+      </div>
+    </section>
+
+    <section class="screen game" id="gameScreen">
+      <div class="players" id="players"></div>
+      <div class="panel">
+        <div class="between">
+          <span class="result-pill" id="categoryPill">Movie</span>
+          <span class="result-pill" id="cluePill">Spin first</span>
+        </div>
+        <div class="phrase" id="phrase"></div>
+      </div>
+      <div class="wheel-zone">
+        <div class="wheel-wrap">
+          <div class="pointer"></div>
+          <div class="wheel" id="wheel"><div id="wheelLabels"></div></div>
+          <div class="wheel-value" id="wheelValue">SPIN</div>
+        </div>
+        <div class="result-pill" id="spinResult">Ready to spin</div>
+        <button class="btn gold" id="spinBtn">Spin Wheel</button>
+      </div>
+      <div class="panel grid">
+        <div class="letters" id="letters"></div>
+        <div class="solve">
+          <input id="solveInput" placeholder="Solve the phrase" autocomplete="off">
+          <button class="btn" id="solveBtn">Solve</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <aside class="drawer panel" id="drawer">
+    <div class="between">
+      <div>
+        <h2>Leaderboard</h2>
+        <p class="small">Local Lucky Spin records.</p>
+      </div>
+      <button class="btn secondary icon-btn" id="closeDrawer" aria-label="Close">×</button>
+    </div>
+    <div class="drawer-list" id="leaderList"></div>
+  </aside>
+
+  <div class="modal" id="resultModal">
+    <div class="panel modal-card">
+      <div>
+        <h2 id="resultTitle">Solved</h2>
+        <p class="small" id="resultText">The phrase is complete.</p>
+      </div>
+      <button class="btn" id="againBtn">Next Phrase</button>
+      <button class="btn secondary" id="setupBtn">Setup</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Saved</div>
+
+  <script>
+    const AppConfig = {
+      appId:"game-lucky-spin",
+      storagePrefix:"kinetik_game_lucky_spin",
+      leaderboardCollection:"leaderboard",
+      sessionCollection:"game_sessions"
+    };
+    const phrases = [
+      ["music","DANCING QUEEN","Song title"],["music","MOONWALK MAGIC","Music move"],["music","YELLOW SUBMARINE","Classic song"],["music","POP STAR","Music person"],["music","GUITAR SOLO","Performance moment"],["music","KARAOKE NIGHT","Party activity"],["music","DRUM ROLL","Sound before a reveal"],["music","HIT SINGLE","Popular song"],["music","WORLD TOUR","Concert travel"],["music","LOVE SONG","Romantic music"],
+      ["movies","THE LION KING","Animated movie"],["movies","HOME ALONE","Holiday movie"],["movies","SPACE ADVENTURE","Movie genre"],["movies","SUPERHERO TEAM","Action movie clue"],["movies","PIRATE TREASURE","Adventure clue"],["movies","MAGIC LAMP","Movie object"],["movies","LOST FISH","Animated story"],["movies","DINOSAUR ISLAND","Adventure setting"],["movies","FAST CARS","Action clue"],["movies","WIZARD SCHOOL","Fantasy setting"],
+      ["cartoons","YELLOW SPONGE","Cartoon character"],["cartoons","CAT AND MOUSE","Classic cartoon pair"],["cartoons","MYSTERY DOG","Cartoon clue"],["cartoons","NINJA HERO","Cartoon hero"],["cartoons","ROBOT CAT","Cartoon character"],["cartoons","KUNG FU PANDA","Animated movie"],["cartoons","TINY YELLOW HELPERS","Animated characters"],["cartoons","BLUE DOG FAMILY","Cartoon family"],["cartoons","ALIEN WATCH","Cartoon object"],["cartoons","TALKING PIG","Kids cartoon"],
+      ["food","EXTRA CHEESE PIZZA","Food order"],["food","BUBBLE TEA","Drink"],["food","FRIED CHICKEN","Comfort food"],["food","CHOCOLATE CAKE","Dessert"],["food","SPICY CURRY","Food clue"],["food","MOVIE POPCORN","Snack"],["food","SUSHI ROLL","Food clue"],["food","PANCAKE STACK","Breakfast"],["food","RAMEN BOWL","Noodle dish"],["food","ICE CREAM SUNDAE","Cold dessert"],
+      ["places","CITY OF LIGHTS","Paris nickname"],["places","DESERT SKYLINE","Dubai clue"],["places","TOKYO TOWER","Landmark"],["places","NEW YORK TAXI","City clue"],["places","BALI BEACH","Holiday place"],["places","ROME COLOSSEUM","Ancient landmark"],["places","DOHA CORNICHE","Qatar place"],["places","MALDIVES ISLANDS","Vacation clue"],["places","LONDON RAIN","City weather clue"],["places","EGYPT PYRAMIDS","Historic place"],
+      ["sports","MATCH POINT","Sports moment"],["sports","GOAL CELEBRATION","Football moment"],["sports","THREE POINTER","Basketball shot"],["sports","PADEL COURT","Sport place"],["sports","FINISH LINE","Race ending"],["sports","PENALTY KICK","Football play"],["sports","GRAND PRIX","Racing event"],["sports","BOWLING STRIKE","Sports score"],["sports","CHECKMATE","Chess ending"],["sports","SURF WAVE","Water sport"],
+      ["jokes","DAD JOKE ALERT","Funny phrase"],["jokes","LOST SOCK MYSTERY","Laundry joke"],["jokes","MONDAY MOOD","Weekly feeling"],["jokes","BAD HAIR DAY","Mirror problem"],["jokes","AUTOCORRECT FAIL","Phone joke"],["jokes","AWKWARD SILENCE","Social moment"],["jokes","BANANA SLIP","Classic gag"],["jokes","PRANK CALL","Mischief"],["jokes","SLEEPY MEETING","Work joke"],["jokes","LATE EXCUSE","Time problem"],
+      ["family","MOVIE NIGHT","Home plan"],["family","FAMILY DINNER","Table moment"],["family","ROAD TRIP","Travel together"],["family","GAME NIGHT","Competitive evening"],["family","BIRTHDAY CAKE","Celebration food"],["family","GROCERY RUN","Errand"],["family","BEDTIME STORY","Night routine"],["family","SIBLING DRAMA","Family moment"],["family","WEEKEND PLAN","Kinetik favorite"],["family","COUCH NAP","Home moment"],
+      ["holidays","EID MUBARAK","Holiday greeting"],["holidays","RAMADAN IFTAR","Evening meal"],["holidays","NEW YEAR COUNTDOWN","Holiday moment"],["holidays","FIREWORKS SHOW","Celebration"],["holidays","GIFT EXCHANGE","Holiday activity"],["holidays","BEACH VACATION","Holiday plan"],["holidays","FAMILY REUNION","Gathering"],["holidays","GRADUATION PARTY","School celebration"],["holidays","NATIONAL DAY","Country celebration"],["holidays","CARNIVAL RIDE","Fun fair"],
+      ["kinetik","PLANS PEOPLE PLAY","Kinetik tagline"],["kinetik","CIRCLE LEADERBOARD","Game record"],["kinetik","EVENT POLL","Kinetik app"],["kinetik","PADEL MATCH","Circle sport"],["kinetik","FAMILY TIME","Protected moment"],["kinetik","QUICK INVITE","Fast planning"],["kinetik","SHARED LIST","Group utility"],["kinetik","PHOTO MEMORY","Saved moment"],["kinetik","BIRTHDAY REMINDER","Useful nudge"],["kinetik","MOVIE VOTE","Circle decision"]
+    ];
+    const categoryLabels = {all:"Mixed",music:"Music",movies:"Movies",cartoons:"Cartoons",food:"Food",places:"Places",sports:"Sports",jokes:"Jokes",family:"Family",holidays:"Holidays",kinetik:"Kinetik"};
+    const segments = [
+      {label:"100", type:"points", value:100},
+      {label:"200", type:"points", value:200},
+      {label:"300", type:"points", value:300},
+      {label:"500", type:"points", value:500},
+      {label:"Double", type:"double", value:0},
+      {label:"Lose", type:"lose", value:0},
+      {label:"700", type:"points", value:700},
+      {label:"Hint", type:"hint", value:0},
+      {label:"250", type:"points", value:250},
+      {label:"Bankrupt", type:"bankrupt", value:0},
+      {label:"900", type:"points", value:900},
+      {label:"+250", type:"bonus", value:250}
+    ];
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    const playerColors = ["#ff6fae","#5f8cff","#26bf9a","#ffbd4a"];
+    const $ = (id) => document.getElementById(id);
+    const state = {
+      circleId:"standalone_demo",
+      circleType:"friends",
+      playerId:"local_player",
+      theme:localStorage.getItem(AppConfig.storagePrefix + "_theme") || "light",
+      category:"all",
+      players:[],
+      current:0,
+      phrase:null,
+      guessed:new Set(),
+      canGuess:false,
+      spinning:false,
+      currentSegment:null,
+      currentValueLabel:"SPIN",
+      rotation:0,
+      solved:false
+    };
+    if (window.self !== window.top) document.body.classList.add("embedded");
+    document.documentElement.dataset.theme = state.theme;
+
+    const Bridge = {
+      send(type, payload){
+        if (window.parent && window.parent !== window) window.parent.postMessage({type, appId:AppConfig.appId, payload}, "*");
+      }
+    };
+
+    addEventListener("message", (event) => {
+      const msg = event.data || {};
+      if (msg.type !== "INIT_APP") return;
+      const ctx = msg.payload || {};
+      state.circleId = ctx.circleId || state.circleId;
+      state.circleType = ctx.circleType || state.circleType;
+      state.playerId = ctx.personId || state.playerId;
+      if (ctx.theme) setTheme(ctx.theme);
+      $("circleLabel").textContent = state.circleType + " circle";
+      if (Array.isArray(ctx.people) && ctx.people.length) seedNames(ctx.people.map((p) => p.name));
+    });
+
+    function setTheme(theme){
+      state.theme = theme === "dark" ? "dark" : "light";
+      document.documentElement.dataset.theme = state.theme;
+      localStorage.setItem(AppConfig.storagePrefix + "_theme", state.theme);
+    }
+
+    function toast(message){
+      $("toast").textContent = message;
+      $("toast").classList.add("show");
+      Bridge.send("SHOW_TOAST", {message});
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => $("toast").classList.remove("show"), 1700);
+    }
+
+    function populateCategories(){
+      const cats = ["all", ...Array.from(new Set(phrases.map((p) => p[0])))];
+      $("categorySelect").innerHTML = cats.map((cat) => `<option value="${cat}">${categoryLabels[cat]}</option>`).join("");
+    }
+
+    function renderNameFields(){
+      const count = Number($("playerCount").value);
+      $("nameFields").innerHTML = Array.from({length:count}, (_,index) => `
+        <label>Player ${index + 1}
+          <input data-name="${index}" maxlength="16" value="Player ${index + 1}" autocomplete="off">
+        </label>
+      `).join("");
+    }
+
+    function seedNames(names){
+      document.querySelectorAll("[data-name]").forEach((input,index) => { if (names[index]) input.value = names[index]; });
+    }
+
+    function startGame(){
+      const count = Number($("playerCount").value);
+      state.category = $("categorySelect").value;
+      state.players = Array.from({length:count}, (_,index) => {
+        const input = document.querySelector(`[data-name="${index}"]`);
+        return {id:"p" + (index + 1), name:(input.value.trim() || `Player ${index + 1}`), color:playerColors[index], score:0, wins:0};
+      });
+      state.current = 0;
+      $("setupScreen").classList.remove("active");
+      $("gameScreen").classList.add("active");
+      nextPhrase();
+    }
+
+    function nextPhrase(){
+      const pool = phrases.filter((phrase) => state.category === "all" || phrase[0] === state.category);
+      const item = pool[Math.floor(Math.random() * pool.length)];
+      state.phrase = {category:item[0], answer:item[1], clue:item[2]};
+      state.guessed = new Set();
+      state.canGuess = false;
+      state.spinning = false;
+      state.currentSegment = null;
+      state.currentValueLabel = "SPIN";
+      state.solved = false;
+      $("solveInput").value = "";
+      $("spinResult").textContent = "Ready to spin";
+      render();
+    }
+
+    function render(){
+      renderPlayers();
+      renderPhrase();
+      renderLetters();
+      renderWheelLabels();
+      $("categoryPill").textContent = categoryLabels[state.phrase.category];
+      $("cluePill").textContent = state.phrase.clue;
+      $("wheelValue").textContent = state.currentValueLabel;
+      $("spinBtn").disabled = state.spinning || state.canGuess || state.solved;
+    }
+
+    function renderPlayers(){
+      $("players").innerHTML = state.players.map((player,index) => `
+        <div class="player-chip ${index === state.current && !state.solved ? "active" : ""}">
+          <span class="dot" style="--c:${player.color}"></span>
+          <span>${escapeHtml(player.name)}</span>
+          <b>${player.score}</b>
+        </div>
+      `).join("");
+    }
+
+    function renderPhrase(){
+      const words = state.phrase.answer.split(" ");
+      $("phrase").innerHTML = words.map((word) => `<span class="word">${word.split("").map((char) => tile(char)).join("")}</span>`).join("");
+    }
+
+    function tile(char){
+      if (!/[A-Z]/.test(char)) return `<span class="tile">${escapeHtml(char)}</span>`;
+      const shown = state.solved || state.guessed.has(char);
+      return `<span class="tile ${shown ? "" : "blank"}">${shown ? char : "?"}</span>`;
+    }
+
+    function renderLetters(){
+      $("letters").innerHTML = letters.map((letter) => `<button data-letter="${letter}" ${state.guessed.has(letter) || !state.canGuess || state.solved ? "disabled" : ""}>${letter}</button>`).join("");
+      document.querySelectorAll("[data-letter]").forEach((button) => button.onclick = () => guessLetter(button.dataset.letter));
+    }
+
+    function renderWheelLabels(){
+      $("wheelLabels").innerHTML = segments.map((segment,index) => `<span class="wheel-label" style="--a:${index * 30 + 15}deg">${segment.label}</span>`).join("");
+    }
+
+    function spin(){
+      if (state.spinning || state.canGuess || state.solved) return;
+      state.spinning = true;
+      const index = Math.floor(Math.random() * segments.length);
+      const segment = segments[index];
+      state.currentSegment = segment;
+      state.currentValueLabel = "...";
+      const target = 360 - (index * 30 + 15);
+      state.rotation += 1440 + target;
+      $("wheel").style.setProperty("--rot", state.rotation + "deg");
+      $("wheelValue").textContent = state.currentValueLabel;
+      $("spinBtn").disabled = true;
+      $("spinResult").textContent = "Spinning...";
+      setTimeout(() => applySegment(segment), 2250);
+    }
+
+    function applySegment(segment){
+      state.spinning = false;
+      const player = currentPlayer();
+      state.currentValueLabel = segment.label;
+      if (segment.type === "points"){
+        state.canGuess = true;
+        $("spinResult").textContent = segment.label + " points";
+      }
+      if (segment.type === "double"){
+        player.score *= 2;
+        $("spinResult").textContent = "Score doubled";
+        toast(player.name + " doubled");
+      }
+      if (segment.type === "bonus"){
+        player.score += segment.value;
+        $("spinResult").textContent = "+250 bonus";
+        toast(player.name + " gets +250");
+      }
+      if (segment.type === "hint"){
+        $("spinResult").textContent = "Free hint";
+        revealHint();
+      }
+      if (segment.type === "lose"){
+        $("spinResult").textContent = "Lose turn";
+        toast(player.name + " loses turn");
+        nextTurn();
+      }
+      if (segment.type === "bankrupt"){
+        player.score = 0;
+        $("spinResult").textContent = "Bankrupt";
+        toast(player.name + " goes bankrupt");
+        nextTurn();
+      }
+      render();
+    }
+
+    function guessLetter(letter){
+      if (!state.canGuess || state.guessed.has(letter) || state.solved) return;
+      state.guessed.add(letter);
+      const count = state.phrase.answer.split("").filter((char) => char === letter).length;
+      const player = currentPlayer();
+      if (count){
+        player.score += (state.currentSegment.value || 0) * count;
+        toast(`${count} ${letter}${count > 1 ? "s" : ""}`);
+        state.canGuess = false;
+        state.currentValueLabel = "SPIN";
+        if (isComplete()) finishRound(player, "solved the phrase");
+      } else {
+        toast("No " + letter);
+        state.canGuess = false;
+        state.currentValueLabel = "SPIN";
+        nextTurn();
+      }
+      render();
+    }
+
+    function revealHint(){
+      const hidden = state.phrase.answer.split("").filter((char) => /[A-Z]/.test(char) && !state.guessed.has(char));
+      if (!hidden.length) return;
+      const letter = hidden[Math.floor(Math.random() * hidden.length)];
+      state.guessed.add(letter);
+      if (isComplete()) finishRound(currentPlayer(), "completed the phrase");
+    }
+
+    function solve(){
+      if (state.solved) return;
+      const guess = $("solveInput").value;
+      if (!guess.trim()){
+        toast("Type the phrase first.");
+        return;
+      }
+      if (normalize(guess) === normalize(state.phrase.answer)){
+        currentPlayer().score += 1000;
+        finishRound(currentPlayer(), "solved the phrase");
+      } else {
+        toast("Not the phrase.");
+        nextTurn();
+        $("solveInput").value = "";
+        render();
+      }
+    }
+
+    function isComplete(){
+      return state.phrase.answer.split("").every((char) => !/[A-Z]/.test(char) || state.guessed.has(char));
+    }
+
+    function finishRound(player, reason){
+      state.solved = true;
+      state.canGuess = false;
+      state.currentValueLabel = "WIN";
+      player.wins++;
+      saveLeader(player);
+      $("resultTitle").textContent = player.name + " wins";
+      $("resultText").textContent = `${player.name} ${reason}: ${state.phrase.answer}.`;
+      $("resultModal").classList.add("show");
+      Bridge.send("DATA_CREATE", {
+        collection: AppConfig.sessionCollection,
+        payload: {circleId:state.circleId, appId:AppConfig.appId, winner:player.name, phrase:state.phrase.answer, score:player.score, createdAt:new Date().toISOString()}
+      });
+      render();
+    }
+
+    function currentPlayer(){ return state.players[state.current]; }
+    function nextTurn(){ state.current = (state.current + 1) % state.players.length; }
+    function normalize(text){ return String(text).toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]/g,""); }
+
+    function saveLeader(player){
+      const leaders = readLeaders();
+      const key = player.name;
+      const entry = leaders[key] || {playerName:key,wins:0,bestScore:0,totalCoins:0};
+      entry.wins++;
+      entry.bestScore = Math.max(entry.bestScore, player.score);
+      entry.totalCoins += player.score;
+      entry.updatedAt = new Date().toISOString();
+      leaders[key] = entry;
+      localStorage.setItem(AppConfig.storagePrefix + "_leaders", JSON.stringify(leaders));
+    }
+
+    function readLeaders(){
+      try { return JSON.parse(localStorage.getItem(AppConfig.storagePrefix + "_leaders") || "{}"); }
+      catch { return {}; }
+    }
+
+    function renderLeaders(){
+      const leaders = Object.values(readLeaders()).sort((a,b) => b.wins - a.wins || b.bestScore - a.bestScore || a.playerName.localeCompare(b.playerName));
+      $("leaderList").innerHTML = leaders.length ? leaders.map((leader,index) => `
+        <div class="leader">
+          <span class="rank">${index + 1}</span>
+          <div><b>${escapeHtml(leader.playerName)}</b><div class="small">${leader.totalCoins} total coins</div></div>
+          <b>${leader.wins}W</b>
+        </div>
+      `).join("") : `<p class="small">No solved phrases yet. Win a phrase to start the board.</p>`;
+    }
+
+    function playAgain(){
+      $("resultModal").classList.remove("show");
+      nextPhrase();
+    }
+
+    function setup(){
+      $("resultModal").classList.remove("show");
+      $("gameScreen").classList.remove("active");
+      $("setupScreen").classList.add("active");
+    }
+
+    function escapeHtml(text){ return String(text).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    $("themeBtn").onclick = () => setTheme(state.theme === "dark" ? "light" : "dark");
+    $("leaderBtn").onclick = () => { renderLeaders(); $("drawer").classList.add("open"); };
+    $("closeDrawer").onclick = () => $("drawer").classList.remove("open");
+    $("playerCount").onchange = renderNameFields;
+    $("startBtn").onclick = startGame;
+    $("spinBtn").onclick = spin;
+    $("solveBtn").onclick = solve;
+    $("solveInput").addEventListener("keydown", (event) => { if (event.key === "Enter") solve(); });
+    $("againBtn").onclick = playAgain;
+    $("setupBtn").onclick = setup;
+    populateCategories();
+    renderNameFields();
+    renderLeaders();
+  </script>
+</body>
+</html>

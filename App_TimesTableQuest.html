@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#ffbd4a"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Times">
+  <title>Times Table Quest - Kinetik</title>
+  <script type="application/kinetik-app+json">
+{
+  "appId": "times-table-quest",
+  "name": "Times Table Quest",
+  "shortName": "Times",
+  "icon": "✖️",
+  "gradient": [
+    "#ffbd4a",
+    "#ff6fae"
+  ],
+  "category": "kids",
+  "tagline": "Fast tables, tiny rounds.",
+  "about": "A simple multiplication practice game for kids. Pick a table, answer ten quick questions, review mistakes, and build speed through repeatable rounds.",
+  "audience": "all",
+  "circleTypes": [
+    "family",
+    "friends"
+  ],
+  "worksWith": [
+    "offline",
+    "standalone"
+  ],
+  "status": "live",
+  "minMembers": 1
+}
+  </script>
+  <style>
+    :root{
+      color-scheme:light;
+      --bg:#fff7e8;
+      --ink:#1f2633;
+      --muted:rgba(31,38,51,.62);
+      --panel:rgba(255,255,255,.80);
+      --soft:rgba(255,255,255,.60);
+      --line:rgba(31,38,51,.13);
+      --accent:#ffbd4a;
+      --accent2:#ff6fae;
+      --good:#22b98f;
+      --danger:#e85f7a;
+      --shadow:0 22px 60px rgba(42,66,96,.16);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    [data-theme="dark"]{
+      color-scheme:dark;
+      --bg:#0d111b;
+      --ink:#f7f9ff;
+      --muted:rgba(247,249,255,.66);
+      --panel:rgba(22,28,42,.82);
+      --soft:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.13);
+      --shadow:0 24px 70px rgba(0,0,0,.38);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      min-height:100dvh;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 14% 8%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 34%),
+        radial-gradient(circle at 88% 10%,color-mix(in srgb,var(--accent2) 20%,transparent),transparent 31%),
+        linear-gradient(180deg,rgba(255,255,255,.25),transparent 50%),
+        var(--bg);
+      overflow:hidden;
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{
+      width:min(100%,680px);
+      height:100dvh;
+      margin:0 auto;
+      padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr);
+      gap:10px;
+      overflow:hidden;
+    }
+    .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .brand{display:flex;align-items:center;gap:9px;min-width:0}
+    .mark{width:38px;height:38px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 30px color-mix(in srgb,var(--accent) 24%,transparent);display:grid;place-items:center;color:white;font-size:22px;font-weight:950}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:21px;line-height:1;font-weight:950;letter-spacing:0}
+    h2{font-size:18px;line-height:1.1}
+    h3{font-size:14px;line-height:1.1}
+    .small{font-size:12px;color:var(--muted);line-height:1.25}
+    .screen{display:none;min-height:0;overflow:hidden}
+    .screen.active{display:grid}
+    .center{align-content:center;gap:12px}
+    .main{grid-template-rows:auto minmax(0,1fr) auto;gap:10px}
+    .panel{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(24px) saturate(1.16);box-shadow:var(--shadow);border-radius:24px;padding:14px;overflow:hidden}
+    .flat{box-shadow:none;background:var(--soft)}
+    .grid{display:grid;gap:9px}
+    .two{grid-template-columns:1fr 1fr}
+    .row{display:flex;align-items:center;gap:8px}
+    .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    label{display:grid;gap:6px;font-size:12px;font-weight:850;color:var(--muted)}
+    input,select{width:100%;min-height:44px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:15px;padding:11px 12px;outline:none}
+    input:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 14%,transparent)}
+    .btn{min-height:44px;border:0;border-radius:15px;padding:10px 13px;color:white;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 28px color-mix(in srgb,var(--accent) 22%,transparent);font-weight:950;display:inline-flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
+    .btn.secondary{background:var(--soft);border:1px solid var(--line);color:var(--ink);box-shadow:none}
+    .btn.danger{background:rgba(232,95,122,.12);border:1px solid rgba(232,95,122,.28);color:var(--danger);box-shadow:none}
+    .icon-btn{width:44px;height:44px;border-radius:15px;padding:0;flex:0 0 auto}
+    .chip{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:7px 10px;color:var(--muted);font-size:12px;font-weight:850}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+    .stat{border:1px solid var(--line);background:var(--soft);border-radius:16px;padding:9px;text-align:center;min-width:0}
+    .stat b{display:block;font-size:18px;line-height:1}
+    .stat span{display:block;margin-top:3px;font-size:11px;color:var(--muted);font-weight:850}
+    .scroll{min-height:0;overflow:auto;display:grid;gap:9px;overscroll-behavior:contain}
+    .drawer{position:fixed;inset:auto 10px calc(10px + env(safe-area-inset-bottom)) 10px;max-width:660px;margin:0 auto;transform:translateY(120%);transition:transform .22s ease;z-index:10}
+    .drawer.open{transform:translateY(0)}
+    .drawer-list{max-height:48dvh;overflow:auto;display:grid;gap:7px;margin-top:10px}
+    .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translate(-50%,120px);background:#1d2635;color:white;border-radius:999px;padding:10px 14px;box-shadow:0 12px 34px rgba(0,0,0,.24);font-size:13px;font-weight:850;transition:transform .22s ease;z-index:20}
+    .toast.show{transform:translate(-50%,0)}
+    @media(max-height:720px){.app{gap:7px;padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:calc(8px + env(safe-area-inset-bottom))}.panel{padding:11px}}
+
+    .math-visual{height:110px;border-radius:24px;border:1px solid var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,var(--soft)),var(--soft));display:grid;place-items:center;margin-bottom:8px}
+    .math-visual svg{width:min(100%,240px);height:98px}
+    .question{font-size:52px;line-height:1;text-align:center;font-weight:950;padding:10px 0 18px}
+    .answers{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .answers button{min-height:62px;font-size:22px}
+    .mistake{border:1px solid var(--line);background:var(--soft);border-radius:15px;padding:9px}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top"><div class="brand"><div class="mark">✖️</div><div><h1>Times Table Quest</h1><p class="small" id="circleLabel">Standalone circle</p></div></div><button class="btn secondary icon-btn" id="themeBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v2.2M12 18.8V21M4.4 4.4 6 6M18 18l1.6 1.6M3 12h2.2M18.8 12H21M4.4 19.6 6 18M18 6l1.6-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="2"/></svg></button></header>
+    <section class="screen center active" id="setupScreen"><div class="panel grid"><div><h2>Quick round</h2><p class="small">Ten questions. Fast, simple, repeatable.</p></div><label>Name<input id="playerName" maxlength="18" value="Player 1"></label><label>Times table<select id="tableSelect"><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></label><button class="btn" id="startBtn">Start</button></div></section>
+    <section class="screen main" id="gameScreen"><div class="stats"><div class="stat"><b id="scoreText">0</b><span>score</span></div><div class="stat"><b id="streakText">0</b><span>streak</span></div><div class="stat"><b id="leftText">10</b><span>left</span></div></div><div class="panel"><div class="math-visual"><svg viewBox="0 0 240 98" aria-hidden="true"><rect x="34" y="20" width="38" height="38" rx="12" fill="var(--accent)"/><rect x="82" y="20" width="38" height="38" rx="12" fill="var(--accent2)"/><rect x="130" y="20" width="38" height="38" rx="12" fill="var(--accent)"/><path d="M55 74h130" stroke="currentColor" stroke-width="7" stroke-linecap="round" opacity=".28"/><text x="188" y="50" font-size="34" font-weight="950" fill="currentColor">×</text></svg></div><div class="question" id="question">7 × 8</div><div class="answers" id="answers"></div></div><div class="panel scroll" id="mistakes"></div></section>
+  </main><div class="toast" id="toast">Saved</div>
+  <script>
+    const AppConfig={"appId":"times-table-quest","storagePrefix":"kinetik_times_table_quest","sessionCollection":"quiz_sessions"};
+    const $=(id)=>document.getElementById(id);const state={circleId:"standalone_demo",circleType:"family",theme:localStorage.getItem(AppConfig.storagePrefix+"_theme")||"light",name:"Player 1",table:2,round:0,score:0,streak:0,a:2,b:2,correct:4,mistakes:[]};
+    document.documentElement.dataset.theme=state.theme;if(window.self!==window.top)document.body.classList.add("embedded");const Bridge={send(type,payload){if(window.parent&&window.parent!==window)window.parent.postMessage({type,appId:AppConfig.appId,payload},"*")}};
+    addEventListener("message",(event)=>{const msg=event.data||{};if(msg.type!=="INIT_APP")return;const ctx=msg.payload||{};state.circleId=ctx.circleId||state.circleId;state.circleType=ctx.circleType||state.circleType;if(ctx.theme)setTheme(ctx.theme);$("circleLabel").textContent=state.circleType+" circle"});
+    function setTheme(theme){state.theme=theme==="dark"?"dark":"light";document.documentElement.dataset.theme=state.theme;localStorage.setItem(AppConfig.storagePrefix+"_theme",state.theme)}
+    function toast(message){$("toast").textContent=message;$("toast").classList.add("show");Bridge.send("SHOW_TOAST",{message});clearTimeout(toast.timer);toast.timer=setTimeout(()=>$("toast").classList.remove("show"),1400)}
+    function start(){state.name=$("playerName").value.trim()||"Player 1";state.table=Number($("tableSelect").value);state.round=0;state.score=0;state.streak=0;state.mistakes=[];$("setupScreen").classList.remove("active");$("gameScreen").classList.add("active");next()}
+    function next(){if(state.round>=10)return finish();state.round++;state.a=state.table;state.b=Math.floor(Math.random()*11)+2;state.correct=state.a*state.b;const opts=shuffle([state.correct,state.correct+state.a,state.correct-state.a, state.correct+Math.floor(Math.random()*6)+1]).filter((v,i,a)=>v>0&&a.indexOf(v)===i);while(opts.length<4)opts.push(state.correct+opts.length*3+1);$("question").textContent=state.a+" × "+state.b;$("answers").innerHTML=shuffle(opts).map((v)=>'<button class="btn secondary" data-answer="'+v+'">'+v+'</button>').join("");document.querySelectorAll("[data-answer]").forEach((b)=>b.onclick=()=>answer(Number(b.dataset.answer)));render()}
+    function answer(v){if(v===state.correct){state.score+=10+state.streak*2;state.streak++;toast("Correct")}else{state.streak=0;state.mistakes.push(state.a+" × "+state.b+" = "+state.correct);toast("Answer: "+state.correct)}next()}
+    function render(){$("scoreText").textContent=state.score;$("streakText").textContent=state.streak;$("leftText").textContent=Math.max(0,10-state.round+1);$("mistakes").innerHTML=state.mistakes.length?state.mistakes.map((m)=>'<div class="mistake">'+m+'</div>').join(""):'<p class="small">Mistakes will appear here for quick review.</p>'}
+    function finish(){saveBest();Bridge.send("DATA_CREATE",{collection:AppConfig.sessionCollection,payload:{circleId:state.circleId,appId:AppConfig.appId,playerName:state.name,table:state.table,score:state.score,mistakes:state.mistakes,createdAt:new Date().toISOString()}});$("setupScreen").classList.add("active");$("gameScreen").classList.remove("active");toast("Round saved: "+state.score)}
+    function saveBest(){const best=Number(localStorage.getItem(AppConfig.storagePrefix+"_best")||0);if(state.score>best)localStorage.setItem(AppConfig.storagePrefix+"_best",String(state.score))}
+    function shuffle(a){const c=a.slice();for(let i=c.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[c[i],c[j]]=[c[j],c[i]]}return c}
+    $("themeBtn").onclick=()=>setTheme(state.theme==="dark"?"light":"dark");$("startBtn").onclick=start;
+  </script>
+</body>
+</html>

@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#20bfa2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Ladder Rush">
+  <title>Ladder Rush - Kinetik</title>
+  <script type="application/kinetik-app+json">
+  {
+    "appId": "game-ladder-rush",
+    "name": "Ladder Rush",
+    "shortName": "Ladders",
+    "icon": "🎲",
+    "gradient": ["#20bfa2", "#ffbd4a"],
+    "category": "games",
+    "tagline": "Roll, climb, slide, win.",
+    "about": "A bright family race across a 100-cell Kinetik board. Roll dice, ride boosts, dodge slides, and save wins to a local circle-ready leaderboard.",
+    "audience": "all",
+    "circleTypes": ["family", "friends"],
+    "worksWith": ["offline", "standalone"],
+    "status": "live",
+    "minMembers": 2
+  }
+  </script>
+  <style>
+    :root{
+      color-scheme:light;
+      --bg:#effbf6;
+      --ink:#13251f;
+      --muted:rgba(19,37,31,.62);
+      --panel:rgba(255,255,255,.80);
+      --soft:rgba(255,255,255,.60);
+      --line:rgba(25,61,51,.13);
+      --accent:#20bfa2;
+      --accent2:#ffbd4a;
+      --blue:#4d8dff;
+      --danger:#e85f7a;
+      --cell:#fffdf8;
+      --cellAlt:#e9f8f0;
+      --shadow:0 22px 60px rgba(48,131,103,.17);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    [data-theme="dark"]{
+      color-scheme:dark;
+      --bg:#081611;
+      --ink:#f4fff9;
+      --muted:rgba(244,255,249,.66);
+      --panel:rgba(16,35,29,.80);
+      --soft:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.13);
+      --cell:#182c25;
+      --cellAlt:#12352c;
+      --shadow:0 24px 70px rgba(0,0,0,.38);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      min-height:100dvh;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 16% 8%,rgba(32,191,162,.23),transparent 34%),
+        radial-gradient(circle at 88% 12%,rgba(255,189,74,.22),transparent 31%),
+        linear-gradient(180deg,rgba(255,255,255,.25),transparent 50%),
+        var(--bg);
+      overflow:hidden;
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{
+      width:min(100%,720px);
+      height:100dvh;
+      margin:0 auto;
+      padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr);
+      gap:10px;
+      overflow:hidden;
+    }
+    .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .brand{display:flex;align-items:center;gap:9px;min-width:0}
+    .mark{width:38px;height:38px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 30px rgba(32,191,162,.24);display:grid;place-items:center;color:white;font-size:22px;font-weight:950}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:21px;line-height:1;font-weight:950;letter-spacing:0}
+    h2{font-size:18px;line-height:1.1}
+    h3{font-size:14px;line-height:1.1}
+    .small{font-size:12px;color:var(--muted);line-height:1.25}
+    .screen{display:none;min-height:0;overflow:hidden}
+    .screen.active{display:grid}
+    .setup{align-content:center;gap:12px}
+    .game{grid-template-rows:auto minmax(0,1fr) auto auto;gap:9px}
+    .panel{
+      border:1px solid var(--line);
+      background:var(--panel);
+      backdrop-filter:blur(24px) saturate(1.16);
+      box-shadow:var(--shadow);
+      border-radius:24px;
+      padding:14px;
+      overflow:hidden;
+    }
+    .grid{display:grid;gap:9px}
+    .two{grid-template-columns:1fr 1fr}
+    .row{display:flex;align-items:center;gap:8px}
+    .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    label{display:grid;gap:6px;font-size:12px;font-weight:850;color:var(--muted)}
+    input,select{
+      width:100%;
+      min-height:44px;
+      border:1px solid var(--line);
+      background:var(--soft);
+      color:var(--ink);
+      border-radius:15px;
+      padding:11px 12px;
+      outline:none;
+    }
+    input:focus,select:focus{border-color:rgba(32,191,162,.5);box-shadow:0 0 0 4px rgba(32,191,162,.13)}
+    .btn{
+      min-height:44px;
+      border:0;
+      border-radius:15px;
+      padding:10px 13px;
+      color:#061813;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      box-shadow:0 12px 28px rgba(32,191,162,.22);
+      font-weight:950;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+      touch-action:manipulation;
+    }
+    .btn.secondary{background:var(--soft);border:1px solid var(--line);color:var(--ink);box-shadow:none}
+    .icon-btn{width:44px;height:44px;border-radius:15px;padding:0;flex:0 0 auto}
+    .names{max-height:34dvh;overflow:auto;display:grid;gap:8px;padding-right:2px}
+    .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);background:var(--soft);border-radius:16px;padding:10px 12px;color:var(--muted);font-weight:850}
+    .toggle input{width:22px;min-height:22px;accent-color:var(--accent)}
+    .status-row{
+      display:flex;
+      gap:7px;
+      overflow:auto;
+      overscroll-behavior-x:contain;
+      padding:1px 2px 3px;
+    }
+    .player-chip{
+      min-width:max-content;
+      border:1px solid var(--line);
+      background:var(--soft);
+      color:var(--muted);
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      font-weight:850;
+      display:flex;
+      align-items:center;
+      gap:6px;
+    }
+    .player-chip.active{color:var(--ink);background:var(--panel);box-shadow:0 8px 20px rgba(0,0,0,.07)}
+    .dot{width:10px;height:10px;border-radius:50%;background:var(--c)}
+    .board-shell{min-height:0;display:grid;place-items:center;position:relative}
+    .board-stage{
+      position:relative;
+      width:min(96vw,100%,560px);
+      aspect-ratio:1;
+      border-radius:24px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.48);
+      box-shadow:0 22px 55px rgba(40,86,72,.22);
+      background:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.18));
+    }
+    .board{
+      position:absolute;
+      inset:0;
+      display:grid;
+      grid-template-columns:repeat(10,1fr);
+      grid-template-rows:repeat(10,1fr);
+      gap:2px;
+      padding:7px;
+    }
+    .paths{position:absolute;inset:0;z-index:2;pointer-events:none}
+    .cell{
+      position:relative;
+      border-radius:10px;
+      background:var(--cell);
+      border:1px solid rgba(255,255,255,.35);
+      overflow:hidden;
+      display:flex;
+      align-items:flex-start;
+      justify-content:flex-start;
+      padding:4px;
+    }
+    .cell.alt{background:var(--cellAlt)}
+    .cell.finish{background:linear-gradient(135deg,var(--accent2),#ff8eb3)}
+    .num{font-size:10px;font-weight:950;color:var(--muted);line-height:1}
+    .tokens{
+      position:absolute;
+      right:3px;
+      bottom:3px;
+      display:flex;
+      flex-wrap:wrap-reverse;
+      justify-content:flex-end;
+      gap:2px;
+      max-width:70%;
+      z-index:3;
+    }
+    .token{
+      width:clamp(10px,3vw,18px);
+      height:clamp(10px,3vw,18px);
+      border-radius:50%;
+      background:var(--c);
+      border:2px solid white;
+      box-shadow:0 5px 12px rgba(0,0,0,.18);
+    }
+    .dice-panel{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:10px}
+    .die{
+      width:68px;
+      height:68px;
+      border-radius:20px;
+      background:linear-gradient(145deg,#fff,#eef7f1);
+      border:1px solid var(--line);
+      box-shadow:inset 0 1px 0 white,0 14px 30px rgba(32,81,67,.16);
+      display:grid;
+      place-items:center;
+      color:#13251f;
+      font-size:36px;
+      font-weight:950;
+    }
+    .feed{
+      min-height:42px;
+      max-height:54px;
+      overflow:hidden;
+      color:var(--muted);
+      font-size:12px;
+      display:grid;
+      gap:2px;
+    }
+    .drawer{
+      position:fixed;
+      inset:auto 10px calc(10px + env(safe-area-inset-bottom)) 10px;
+      max-width:660px;
+      margin:0 auto;
+      transform:translateY(120%);
+      transition:transform .22s ease;
+      z-index:10;
+    }
+    .drawer.open{transform:translateY(0)}
+    .drawer-list{max-height:48dvh;overflow:auto;display:grid;gap:7px;margin-top:10px}
+    .leader{display:grid;grid-template-columns:auto 1fr auto;gap:9px;align-items:center;border:1px solid var(--line);background:var(--soft);border-radius:15px;padding:9px}
+    .rank{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#061813;font-weight:950;font-size:12px}
+    .modal{
+      position:fixed;
+      inset:0;
+      display:none;
+      place-items:center;
+      background:rgba(8,12,20,.32);
+      backdrop-filter:blur(12px);
+      z-index:15;
+      padding:18px;
+    }
+    .modal.show{display:grid}
+    .modal-card{width:min(100%,360px);display:grid;gap:12px;text-align:center}
+    .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translate(-50%,120px);background:#14241e;color:white;border-radius:999px;padding:10px 14px;box-shadow:0 12px 34px rgba(0,0,0,.24);font-size:13px;font-weight:850;transition:transform .22s ease;z-index:20}
+    .toast.show{transform:translate(-50%,0)}
+    @media(max-height:720px){
+      .app{gap:7px;padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+      .die{width:58px;height:58px;border-radius:18px;font-size:31px}
+      .panel{padding:11px}
+    }
+    @media(max-width:380px){
+      .board{gap:1px;padding:6px}
+      .cell{border-radius:8px;padding:3px}
+      .num{font-size:9px}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="mark">🎲</div>
+        <div>
+          <h1>Ladder Rush</h1>
+          <p class="small" id="circleLabel">Standalone circle</p>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn secondary icon-btn" id="leaderBtn" aria-label="Open leaderboard">🏆</button>
+        <button class="btn secondary icon-btn" id="themeBtn" aria-label="Toggle theme">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v2.2M12 18.8V21M4.4 4.4 6 6M18 18l1.6 1.6M3 12h2.2M18.8 12H21M4.4 19.6 6 18M18 6l1.6-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="screen setup active" id="setupScreen">
+      <div class="panel grid">
+        <div>
+          <h2>Start race</h2>
+          <p class="small">Two to six players. First to 100 wins.</p>
+        </div>
+        <div class="grid two">
+          <label>Players
+            <select id="playerCount">
+              <option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option>
+            </select>
+          </label>
+          <label>Board style
+            <select id="styleSelect">
+              <option value="kinetik">Kinetik</option>
+              <option value="classic">Classic</option>
+              <option value="kids">Kids</option>
+            </select>
+          </label>
+        </div>
+        <div class="names" id="nameFields"></div>
+        <label class="toggle">
+          <span>Exact finish</span>
+          <input id="exactFinish" type="checkbox" checked>
+        </label>
+        <button class="btn" id="startBtn">Start Race</button>
+      </div>
+    </section>
+
+    <section class="screen game" id="gameScreen">
+      <div class="status-row" id="statusRow"></div>
+      <div class="board-shell">
+        <div class="board-stage">
+          <svg class="paths" id="paths" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+          <div class="board" id="board"></div>
+        </div>
+      </div>
+      <div class="panel dice-panel">
+        <div class="die" id="die">1</div>
+        <div class="grid">
+          <div>
+            <h2 id="turnTitle">Player turn</h2>
+            <p class="small" id="turnSub">Roll to move.</p>
+          </div>
+          <button class="btn" id="rollBtn">Roll Dice</button>
+        </div>
+      </div>
+      <div class="feed" id="feed"></div>
+    </section>
+  </main>
+
+  <aside class="drawer panel" id="drawer">
+    <div class="between">
+      <div>
+        <h2>Leaderboard</h2>
+        <p class="small">Local race wins for this device.</p>
+      </div>
+      <button class="btn secondary icon-btn" id="closeDrawer" aria-label="Close">×</button>
+    </div>
+    <div class="drawer-list" id="leaderList"></div>
+  </aside>
+
+  <div class="modal" id="resultModal">
+    <div class="panel modal-card">
+      <div>
+        <h2 id="resultTitle">Winner</h2>
+        <p class="small" id="resultText">Race complete.</p>
+      </div>
+      <button class="btn" id="againBtn">Race Again</button>
+      <button class="btn secondary" id="setupBtn">Setup</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Saved</div>
+
+  <script>
+    const AppConfig = {
+      appId:"game-ladder-rush",
+      storagePrefix:"kinetik_game_ladder_rush",
+      leaderboardCollection:"leaderboard",
+      sessionCollection:"game_sessions"
+    };
+    const $ = (id) => document.getElementById(id);
+    const colors = ["#ff5f8e","#4d8dff","#20bfa2","#ffbd4a","#9b6cff","#ff7a59"];
+    const maps = {
+      classic: {
+        boosts:{4:14,9:31,20:38,28:84,40:59,51:67,63:81,71:91},
+        slides:{17:7,54:34,62:19,64:60,87:24,93:73,95:75,99:78}
+      },
+      kinetik: {
+        boosts:{3:22,8:30,15:44,26:52,36:57,49:76,66:88,78:96},
+        slides:{18:6,35:12,47:29,61:41,73:53,86:64,94:70,98:82}
+      },
+      kids: {
+        boosts:{2:16,7:25,14:35,23:47,32:55,45:68,58:79,72:90,83:97},
+        slides:{39:21,63:50,89:74,99:86}
+      }
+    };
+    const state = {
+      circleId:"standalone_demo",
+      circleType:"friends",
+      playerId:"local_player",
+      theme:localStorage.getItem(AppConfig.storagePrefix + "_theme") || "light",
+      style:"kinetik",
+      exact:true,
+      players:[],
+      current:0,
+      dice:1,
+      rolling:false,
+      events:[],
+      winner:null,
+      startedAt:0
+    };
+    if (window.self !== window.top) document.body.classList.add("embedded");
+    document.documentElement.dataset.theme = state.theme;
+
+    const Bridge = {
+      send(type, payload){
+        if (window.parent && window.parent !== window) window.parent.postMessage({type, appId:AppConfig.appId, payload}, "*");
+      }
+    };
+
+    addEventListener("message", (event) => {
+      const msg = event.data || {};
+      if (msg.type !== "INIT_APP") return;
+      const ctx = msg.payload || {};
+      state.circleId = ctx.circleId || state.circleId;
+      state.circleType = ctx.circleType || state.circleType;
+      state.playerId = ctx.personId || state.playerId;
+      if (ctx.theme) setTheme(ctx.theme);
+      $("circleLabel").textContent = state.circleType + " circle";
+      if (Array.isArray(ctx.people) && ctx.people.length) seedNames(ctx.people.map((p) => p.name));
+    });
+
+    function setTheme(theme){
+      state.theme = theme === "dark" ? "dark" : "light";
+      document.documentElement.dataset.theme = state.theme;
+      localStorage.setItem(AppConfig.storagePrefix + "_theme", state.theme);
+    }
+
+    function toast(message){
+      $("toast").textContent = message;
+      $("toast").classList.add("show");
+      Bridge.send("SHOW_TOAST", {message});
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => $("toast").classList.remove("show"), 1700);
+    }
+
+    function seedNames(names){
+      const inputs = document.querySelectorAll("[data-name]");
+      inputs.forEach((input,index) => { if (names[index]) input.value = names[index]; });
+    }
+
+    function renderNameFields(){
+      const count = Number($("playerCount").value);
+      const defaults = ["Player 1","Player 2","Player 3","Player 4","Player 5","Player 6"];
+      $("nameFields").innerHTML = Array.from({length:count}, (_,index) => `
+        <label>Player ${index + 1}
+          <input data-name="${index}" maxlength="16" value="${defaults[index]}" autocomplete="off">
+        </label>
+      `).join("");
+    }
+
+    function startRace(){
+      const count = Number($("playerCount").value);
+      state.style = $("styleSelect").value;
+      state.exact = $("exactFinish").checked;
+      state.players = Array.from({length:count}, (_,index) => {
+        const input = document.querySelector(`[data-name="${index}"]`);
+        return {id:"p" + (index + 1), name:(input.value.trim() || `Player ${index + 1}`), color:colors[index], pos:1, climbs:0, slides:0};
+      });
+      state.current = 0;
+      state.dice = 1;
+      state.rolling = false;
+      state.events = ["Race started"];
+      state.winner = null;
+      state.startedAt = Date.now();
+      $("setupScreen").classList.remove("active");
+      $("gameScreen").classList.add("active");
+      render();
+    }
+
+    function cellPosition(n){
+      const rowFromBottom = Math.floor((n - 1) / 10);
+      const indexInRow = (n - 1) % 10;
+      const visualRow = 9 - rowFromBottom;
+      const visualCol = rowFromBottom % 2 ? 9 - indexInRow : indexInRow;
+      return {row:visualRow, col:visualCol, x:(visualCol + .5) * 10, y:(visualRow + .5) * 10};
+    }
+
+    function render(){
+      renderStatus();
+      renderBoard();
+      renderPaths();
+      renderTurn();
+      renderFeed();
+    }
+
+    function renderStatus(){
+      $("statusRow").innerHTML = state.players.map((player,index) => `
+        <div class="player-chip ${index === state.current && !state.winner ? "active" : ""}">
+          <span class="dot" style="--c:${player.color}"></span>
+          <span>${escapeHtml(player.name)}</span>
+          <b>${player.pos}</b>
+        </div>
+      `).join("");
+    }
+
+    function renderBoard(){
+      let html = "";
+      for (let n = 100; n >= 1; n--){
+        const p = cellPosition(n);
+        const playersHere = state.players.filter((player) => player.pos === n);
+        html += `<div class="cell ${(p.row + p.col) % 2 ? "alt" : ""} ${n === 100 ? "finish" : ""}" style="grid-row:${p.row + 1};grid-column:${p.col + 1}">
+          <span class="num">${n}</span>
+          <div class="tokens">${playersHere.map((player) => `<span class="token" title="${escapeHtml(player.name)}" style="--c:${player.color}"></span>`).join("")}</div>
+        </div>`;
+      }
+      $("board").innerHTML = html;
+    }
+
+    function renderPaths(){
+      const map = maps[state.style];
+      const boostLines = Object.entries(map.boosts).map(([from,to]) => pathLine(Number(from), Number(to), "boost")).join("");
+      const slideLines = Object.entries(map.slides).map(([from,to]) => pathLine(Number(from), Number(to), "slide")).join("");
+      $("paths").innerHTML = `
+        <defs>
+          <linearGradient id="boostGrad" x1="0" x2="1"><stop stop-color="#20bfa2"/><stop offset="1" stop-color="#ffbd4a"/></linearGradient>
+          <linearGradient id="slideGrad" x1="0" x2="1"><stop stop-color="#e85f7a"/><stop offset="1" stop-color="#9b6cff"/></linearGradient>
+        </defs>
+        ${boostLines}${slideLines}
+      `;
+    }
+
+    function pathLine(from, to, type){
+      const a = cellPosition(from), b = cellPosition(to);
+      const stroke = type === "boost" ? "url(#boostGrad)" : "url(#slideGrad)";
+      const width = type === "boost" ? 1.8 : 1.4;
+      const dash = type === "boost" ? "" : "stroke-dasharray='2.2 1.6'";
+      return `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" opacity=".78" ${dash}/>`;
+    }
+
+    function renderTurn(){
+      const player = state.players[state.current];
+      $("die").textContent = state.dice;
+      $("turnTitle").textContent = state.winner ? state.winner.name + " wins" : player.name + "'s turn";
+      $("turnSub").textContent = state.winner ? "Race complete." : (state.exact ? "Exact finish is on." : "Roll past 100 allowed.");
+      $("rollBtn").disabled = state.rolling || !!state.winner;
+      $("rollBtn").textContent = state.rolling ? "Moving..." : "Roll Dice";
+    }
+
+    function renderFeed(){
+      $("feed").innerHTML = state.events.slice(-3).reverse().map((event) => `<div>${escapeHtml(event)}</div>`).join("");
+    }
+
+    function roll(){
+      if (state.rolling || state.winner) return;
+      state.rolling = true;
+      state.dice = Math.floor(Math.random() * 6) + 1;
+      const player = state.players[state.current];
+      addEvent(`${player.name} rolled ${state.dice}`);
+      $("die").textContent = state.dice;
+      const rawTarget = player.pos + state.dice;
+      if (rawTarget > 100 && state.exact){
+        addEvent(`${player.name} needs exact roll`);
+        state.rolling = false;
+        nextTurn();
+        render();
+        return;
+      }
+      const target = Math.min(100, rawTarget);
+      animateMove(player, target, () => afterLanding(player));
+    }
+
+    function animateMove(player, target, done){
+      const step = player.pos < target ? 1 : -1;
+      const timer = setInterval(() => {
+        player.pos += step;
+        render();
+        if (player.pos === target){
+          clearInterval(timer);
+          setTimeout(done, 220);
+        }
+      }, 150);
+    }
+
+    function afterLanding(player){
+      if (player.pos === 100){
+        win(player);
+        return;
+      }
+      const map = maps[state.style];
+      if (map.boosts[player.pos]){
+        const to = map.boosts[player.pos];
+        addEvent(`${player.name} climbed to ${to}`);
+        player.climbs++;
+        animateMove(player, to, () => {
+          if (player.pos === 100) win(player);
+          else finishTurn();
+        });
+        return;
+      }
+      if (map.slides[player.pos]){
+        const to = map.slides[player.pos];
+        addEvent(`${player.name} slid to ${to}`);
+        player.slides++;
+        animateMove(player, to, finishTurn);
+        return;
+      }
+      finishTurn();
+    }
+
+    function finishTurn(){
+      state.rolling = false;
+      nextTurn();
+      render();
+    }
+
+    function nextTurn(){ state.current = (state.current + 1) % state.players.length; }
+    function addEvent(text){ state.events.push(text); }
+
+    function win(player){
+      state.winner = player;
+      state.rolling = false;
+      addEvent(`${player.name} wins`);
+      const seconds = Math.max(1, Math.round((Date.now() - state.startedAt) / 1000));
+      saveLeader(player, seconds);
+      $("resultTitle").textContent = player.name + " wins";
+      $("resultText").textContent = `${state.styleLabel || labelForStyle(state.style)} race finished in ${seconds}s.`;
+      $("resultModal").classList.add("show");
+      Bridge.send("DATA_CREATE", {
+        collection: AppConfig.sessionCollection,
+        payload: {circleId:state.circleId, appId:AppConfig.appId, winner:player.name, style:state.style, seconds, players:state.players.map((p) => ({name:p.name,pos:p.pos})), createdAt:new Date().toISOString()}
+      });
+      render();
+    }
+
+    function labelForStyle(style){ return style.charAt(0).toUpperCase() + style.slice(1); }
+
+    function saveLeader(player, seconds){
+      const leaders = readLeaders();
+      const key = player.name;
+      const entry = leaders[key] || {playerName:key,wins:0,fastest:null,climbs:0,slides:0};
+      entry.wins++;
+      entry.fastest = entry.fastest == null ? seconds : Math.min(entry.fastest, seconds);
+      entry.climbs += player.climbs;
+      entry.slides += player.slides;
+      entry.updatedAt = new Date().toISOString();
+      leaders[key] = entry;
+      localStorage.setItem(AppConfig.storagePrefix + "_leaders", JSON.stringify(leaders));
+    }
+
+    function readLeaders(){
+      try { return JSON.parse(localStorage.getItem(AppConfig.storagePrefix + "_leaders") || "{}"); }
+      catch { return {}; }
+    }
+
+    function renderLeaders(){
+      const leaders = Object.values(readLeaders()).sort((a,b) => b.wins - a.wins || a.fastest - b.fastest || a.playerName.localeCompare(b.playerName));
+      $("leaderList").innerHTML = leaders.length ? leaders.map((leader,index) => `
+        <div class="leader">
+          <span class="rank">${index + 1}</span>
+          <div><b>${escapeHtml(leader.playerName)}</b><div class="small">${leader.fastest || "-"}s best · ${leader.climbs} climbs</div></div>
+          <b>${leader.wins}W</b>
+        </div>
+      `).join("") : `<p class="small">No races won yet. Finish a race to start the board.</p>`;
+    }
+
+    function raceAgain(){
+      $("resultModal").classList.remove("show");
+      state.players.forEach((player) => { player.pos = 1; player.climbs = 0; player.slides = 0; });
+      state.current = 0;
+      state.events = ["New race started"];
+      state.winner = null;
+      state.startedAt = Date.now();
+      render();
+    }
+
+    function setup(){
+      $("resultModal").classList.remove("show");
+      $("gameScreen").classList.remove("active");
+      $("setupScreen").classList.add("active");
+    }
+
+    function escapeHtml(text){ return String(text).replace(/[&<>"']/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    $("themeBtn").onclick = () => setTheme(state.theme === "dark" ? "light" : "dark");
+    $("leaderBtn").onclick = () => { renderLeaders(); $("drawer").classList.add("open"); };
+    $("closeDrawer").onclick = () => $("drawer").classList.remove("open");
+    $("playerCount").onchange = renderNameFields;
+    $("startBtn").onclick = startRace;
+    $("rollBtn").onclick = roll;
+    $("againBtn").onclick = raceAgain;
+    $("setupBtn").onclick = setup;
+    renderNameFields();
+    renderLeaders();
+  </script>
+</body>
+</html>

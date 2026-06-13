@@ -1,0 +1,460 @@
+<!--
+KINETIK APP STANDARD v0.1
+
+You are editing a modular single-file app inside the Kinetik ecosystem.
+
+PRODUCT:
+Kinetik is a private life app for Family and Friends circles.
+
+THIS FILE:
+Standalone app file: App_PadelAmericano.html
+
+RULES:
+1. Keep this app as a single HTML file unless explicitly requested otherwise.
+2. The app must work in embedded mode inside Kinetik.html and standalone PWA mode.
+3. Use circle-based logic, not family-only logic.
+4. Use circleId, circleType, personId.
+5. Do not directly depend on Firebase.
+6. Prototype backend is Google Sheets via Apps Script.
+7. Use DataAPI / app bridge for persistent operations.
+8. Store app-specific data in AppRecords using circleId, appId, collection, payloadJson.
+9. Support light/dark theme with CSS variables.
+10. Maintain premium, clean, mobile-first UI.
+11. Preserve PWA meta tags and service worker registration.
+
+REACT/TYPESCRIPT APP SCALE-UP NOTE:
+- This single-file app should later become a React feature module or standalone route.
+- It must keep using AppBridge/DataAPI contracts.
+- It must not access another circle's data.
+- It must store app-specific data in AppRecords using circleId, appId, collection, payloadJson.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1cbf7b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Padel">
+  <link rel="manifest" href="./manifest_padel.webmanifest">
+  <title>Americano Padel - Kinetik</title>
+  <style>
+    :root{
+      color-scheme:light;
+      --bg:#ecf8f3;
+      --ink:#0e2018;
+      --muted:rgba(14,32,24,.64);
+      --line:rgba(14,32,24,.13);
+      --panel:rgba(255,255,255,.78);
+      --soft:rgba(255,255,255,.54);
+      --accent:#1cbf7b;
+      --cyan:#1bb8d6;
+      --amber:#e69a22;
+      --rose:#db4c81;
+      --shadow:0 20px 60px rgba(28,112,82,.17);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    [data-theme="dark"]{
+      color-scheme:dark;
+      --bg:#07140f;
+      --ink:#f4fff9;
+      --muted:rgba(244,255,249,.68);
+      --line:rgba(255,255,255,.14);
+      --panel:rgba(12,28,22,.72);
+      --soft:rgba(255,255,255,.08);
+      --shadow:0 24px 70px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      overflow:hidden;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 18% 8%,rgba(28,191,123,.22),transparent 34%),
+        radial-gradient(circle at 88% 10%,rgba(27,184,214,.18),transparent 30%),
+        var(--bg);
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{height:100dvh;max-width:980px;margin:0 auto;padding:12px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;overflow:hidden}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .brand{display:flex;align-items:center;gap:10px;min-width:0}
+    .mark{width:38px;height:38px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--cyan));box-shadow:0 12px 34px rgba(28,191,123,.26);position:relative;flex:0 0 auto}
+    .mark:after{content:"";position:absolute;left:9px;right:9px;top:17px;height:3px;background:white;border-radius:999px;box-shadow:0 -7px 0 rgba(255,255,255,.82),0 7px 0 rgba(255,255,255,.82)}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:22px;line-height:1;font-weight:900}
+    h2{font-size:17px;line-height:1.1}
+    h3{font-size:14px;line-height:1.1}
+    .small{font-size:12px;color:var(--muted)}
+    .tiny{font-size:11px;color:var(--muted)}
+    .chip{border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:999px;padding:7px 10px;font-size:12px;white-space:nowrap}
+    .btn{border:0;border-radius:14px;padding:10px 12px;min-height:40px;color:#052218;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--cyan))}
+    .btn.secondary{background:var(--soft);border:1px solid var(--line);color:var(--ink)}
+    .btn.danger{background:rgba(219,76,129,.1);border:1px solid rgba(219,76,129,.3);color:var(--rose)}
+    .card{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(22px) saturate(1.2);box-shadow:var(--shadow);border-radius:22px;padding:13px;overflow:hidden}
+    .flat{box-shadow:none;background:var(--soft)}
+    .main{min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px;overflow:hidden}
+    .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+    .tabs button{border:1px solid var(--line);background:var(--soft);color:var(--muted);border-radius:14px;padding:9px 6px;font-weight:800}
+    .tabs button.active{background:linear-gradient(135deg,var(--accent),var(--cyan));color:#052218;border-color:transparent}
+    .view{display:none;min-height:0;overflow:hidden}
+    .view.active{display:grid;gap:10px}
+    .setup-view{grid-template-rows:auto auto minmax(0,1fr)}
+    .rounds-view,.share-view{grid-template-rows:auto minmax(0,1fr)}
+    .row{display:flex;align-items:center;gap:8px}
+    .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .grid{display:grid;gap:8px}
+    .two{grid-template-columns:1fr 1fr}
+    input,select{width:100%;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:14px;padding:11px}
+    .players{display:flex;gap:7px;flex-wrap:wrap;align-content:flex-start;min-height:0;overflow:auto;overscroll-behavior:contain}
+    .player{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:7px 9px;font-size:12px}
+    .player button{border:0;background:transparent;color:var(--muted);padding:0;font-weight:900}
+    .leader{display:grid;grid-template-columns:34px 1fr auto auto;align-items:center;gap:8px;border:1px solid var(--line);background:var(--soft);border-radius:16px;padding:9px}
+    .rank{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--cyan));color:#052218;font-weight:900;font-size:12px}
+    .round-list{height:100%;min-height:0;overflow:auto;display:grid;gap:9px;overscroll-behavior:contain}
+    .match{border:1px solid var(--line);background:var(--soft);border-radius:18px;padding:10px;display:grid;gap:8px}
+    .score-row{display:grid;grid-template-columns:1fr 66px 66px;gap:7px;align-items:center}
+    .score-row input{text-align:center;padding:9px}
+    .share-card{height:100%;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:10px}
+    .preview{display:grid;place-items:center;min-height:0;overflow:auto}
+    .preview img{max-width:100%;border-radius:18px;border:1px solid var(--line);box-shadow:var(--shadow)}
+    canvas{display:none}
+    @media(min-width:760px){
+      .app{padding:18px}
+      .setup-view{grid-template-columns:.95fr 1.05fr;grid-template-rows:auto minmax(0,1fr)}
+      .setup-view .card:first-child{grid-row:1 / -1}
+      .tabs{max-width:440px}
+    }
+  </style>
+</head>
+<body data-theme="light">
+  <main class="app">
+    <header class="top">
+      <div class="brand">
+        <div class="mark"></div>
+        <div style="min-width:0">
+          <h1>Americano Padel</h1>
+          <div class="small" id="contextLine">Standalone demo</div>
+        </div>
+      </div>
+      <button class="chip" id="doneBtn">Done</button>
+    </header>
+
+    <section class="main">
+      <nav class="tabs">
+        <button class="active" data-view="setup">Setup</button>
+        <button data-view="rounds">Rounds</button>
+        <button data-view="share">Share</button>
+      </nav>
+
+      <section class="view setup-view active" id="view-setup">
+        <div class="card">
+          <div class="between"><h2>Players</h2><span class="chip" id="playerCount">0</span></div>
+          <div class="row" style="margin-top:10px">
+            <input id="playerInput" placeholder="Player name">
+            <button class="btn" id="addPlayer">Add</button>
+          </div>
+          <div class="grid two" style="margin-top:8px">
+            <select id="courts"><option value="1">1 court</option><option value="2" selected>2 courts</option><option value="3">3 courts</option></select>
+            <select id="roundCount"><option value="3">3 rounds</option><option value="4" selected>4 rounds</option><option value="5">5 rounds</option><option value="6">6 rounds</option></select>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" id="generateBtn">Generate</button>
+            <button class="btn secondary" id="resetBtn">Reset</button>
+          </div>
+        </div>
+
+        <div class="card flat players" id="players"></div>
+
+        <div class="card">
+          <div class="between"><h2>Leaderboard</h2><span class="chip" id="savedBadge">local</span></div>
+          <div class="grid" style="margin-top:10px" id="leaders"></div>
+        </div>
+      </section>
+
+      <section class="view rounds-view" id="view-rounds">
+        <div class="card between">
+          <div><h2>Rounds</h2><p class="small" id="roundMeta">Generate from Setup</p></div>
+          <button class="btn secondary" id="saveBtn">Save</button>
+        </div>
+        <div class="round-list" id="rounds"></div>
+      </section>
+
+      <section class="view share-view" id="view-share">
+        <div class="card between">
+          <div><h2>Result Card</h2><p class="small">Ready for WhatsApp or iMessage</p></div>
+          <button class="btn" id="renderShare">Render</button>
+        </div>
+        <div class="preview card flat" id="preview"><p class="small">Render a share card after scores are entered.</p></div>
+        <div class="row">
+          <button class="btn secondary" id="downloadBtn">Download PNG</button>
+          <button class="btn secondary" id="shareBtn">Share</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <canvas id="shareCanvas" width="1080" height="1350"></canvas>
+
+  <script>
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+    const state = {
+      appId:"padel-americano",
+      circleId:"standalone_demo",
+      circleType:"friends",
+      personId:"person_demo",
+      theme:"light",
+      players:["Aldyth","Omar","Faisal","Rafi","Nasser","Hamad","Zaid","Ali"],
+      courts:2,
+      roundCount:4,
+      rounds:[],
+      scores:{},
+      saved:false,
+      shareUrl:""
+    };
+    const Bridge = {
+      send(type, payload = {}) {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({type, appId:state.appId, payload}, "*");
+        }
+      }
+    };
+    window.addEventListener("message", (event) => {
+      const msg = event.data || {};
+      if (msg.type !== "INIT_APP") return;
+      Object.assign(state, msg.payload || {});
+      document.body.dataset.theme = state.theme || "light";
+      $("#contextLine").textContent = `${state.circleType} circle - ${state.backendMode || "local-demo"}`;
+      render();
+    });
+    function switchView(view) {
+      $$(".view").forEach((el) => el.classList.remove("active"));
+      $(`#view-${view}`).classList.add("active");
+      $$("[data-view]").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
+    }
+    function render() {
+      state.courts = Number($("#courts").value || state.courts);
+      state.roundCount = Number($("#roundCount").value || state.roundCount);
+      $("#playerCount").textContent = `${state.players.length} players`;
+      $("#players").innerHTML = state.players.map((name) => `<span class="player">${name}<button data-remove="${name}" aria-label="Remove ${name}">x</button></span>`).join("");
+      $$("[data-remove]").forEach((button) => button.onclick = () => {
+        state.players = state.players.filter((name) => name !== button.dataset.remove);
+        delete state.scores[button.dataset.remove];
+        render();
+      });
+      renderLeaders();
+      renderRounds();
+    }
+    function renderLeaders() {
+      state.players.forEach((name) => state.scores[name] ||= {points:0,wins:0,played:0});
+      const leaders = state.players
+        .map((name) => ({name, ...state.scores[name]}))
+        .sort((a,b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name));
+      $("#leaders").innerHTML = leaders.map((player, index) => `<div class="leader">
+        <span class="rank">${index + 1}</span>
+        <b>${player.name}</b>
+        <span class="small">${player.wins}W</span>
+        <span>${player.points}</span>
+      </div>`).join("");
+    }
+    function generateRounds() {
+      const needed = Number($("#courts").value) * 4;
+      if (state.players.length < 4) return notify("Add at least 4 players.");
+      if (state.players.length < needed) return notify(`${$("#courts").value} courts need ${needed} players.`);
+      state.courts = Number($("#courts").value);
+      state.roundCount = Number($("#roundCount").value);
+      state.scores = Object.fromEntries(state.players.map((name) => [name,{points:0,wins:0,played:0}]));
+      const players = [...state.players];
+      state.rounds = [];
+      for (let round = 0; round < state.roundCount; round++) {
+        const rotated = players.slice(round).concat(players.slice(0, round));
+        for (let court = 0; court < state.courts; court++) {
+          const start = court * 4;
+          const group = rotated.slice(start, start + 4);
+          state.rounds.push({
+            id:`r${round + 1}c${court + 1}`,
+            round:round + 1,
+            court:court + 1,
+            teamA:[group[0], group[3]],
+            teamB:[group[1], group[2]],
+            scoreA:"",
+            scoreB:""
+          });
+        }
+      }
+      state.saved = false;
+      switchView("rounds");
+      render();
+    }
+    function renderRounds() {
+      $("#roundMeta").textContent = state.rounds.length ? `${state.roundCount} rounds - ${state.courts} court${state.courts > 1 ? "s" : ""}` : "Generate from Setup";
+      $("#rounds").innerHTML = state.rounds.length ? state.rounds.map((match) => `<div class="match">
+        <div class="between"><b>Round ${match.round} - Court ${match.court}</b><span class="chip">${match.id.toUpperCase()}</span></div>
+        <div class="score-row">
+          <span>${match.teamA.join(" + ")}</span>
+          <input inputmode="numeric" data-score="${match.id}:A" value="${match.scoreA}" placeholder="0">
+          <input inputmode="numeric" data-score="${match.id}:B" value="${match.scoreB}" placeholder="0">
+        </div>
+        <div class="score-row">
+          <span>${match.teamB.join(" + ")}</span>
+          <span class="tiny">Team A</span>
+          <span class="tiny">Team B</span>
+        </div>
+      </div>`).join("") : `<div class="card flat"><p class="small">No rounds yet.</p></div>`;
+      $$("[data-score]").forEach((input) => input.oninput = () => {
+        const [id, team] = input.dataset.score.split(":");
+        const match = state.rounds.find((item) => item.id === id);
+        match[team === "A" ? "scoreA" : "scoreB"] = input.value;
+        calculateScores();
+      });
+    }
+    function calculateScores() {
+      state.scores = Object.fromEntries(state.players.map((name) => [name,{points:0,wins:0,played:0}]));
+      state.rounds.forEach((match) => {
+        const a = Number(match.scoreA);
+        const b = Number(match.scoreB);
+        if (match.scoreA === "" || match.scoreB === "" || Number.isNaN(a) || Number.isNaN(b)) return;
+        match.teamA.forEach((name) => {
+          state.scores[name].points += a;
+          state.scores[name].wins += a > b ? 1 : 0;
+          state.scores[name].played += 1;
+        });
+        match.teamB.forEach((name) => {
+          state.scores[name].points += b;
+          state.scores[name].wins += b > a ? 1 : 0;
+          state.scores[name].played += 1;
+        });
+      });
+      renderLeaders();
+      state.saved = false;
+      $("#savedBadge").textContent = "unsaved";
+    }
+    function saveTournament() {
+      const payload = {
+        players:state.players,
+        courts:state.courts,
+        roundCount:state.roundCount,
+        rounds:state.rounds,
+        scores:state.scores,
+        savedAt:new Date().toISOString()
+      };
+      Bridge.send("DATA_CREATE", {collection:"tournaments", payload});
+      state.saved = true;
+      $("#savedBadge").textContent = "saved";
+      notify("Tournament saved.");
+    }
+    function standings() {
+      return state.players.map((name) => ({name, ...state.scores[name]})).sort((a,b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name));
+    }
+    function renderShareCard() {
+      const canvas = $("#shareCanvas");
+      const ctx = canvas.getContext("2d");
+      const w = canvas.width;
+      const h = canvas.height;
+      const gradient = ctx.createLinearGradient(0,0,w,h);
+      gradient.addColorStop(0,"#06351f");
+      gradient.addColorStop(.55,"#0b5f43");
+      gradient.addColorStop(1,"#0a293a");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0,0,w,h);
+      ctx.fillStyle = "rgba(255,255,255,.10)";
+      for (let i = 0; i < 18; i++) {
+        ctx.beginPath();
+        ctx.arc((i * 83) % w, 120 + ((i * 137) % 1050), 120 + (i % 4) * 28, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 74px Inter, Arial";
+      ctx.fillText("Americano Padel", 80, 120);
+      ctx.font = "500 32px Inter, Arial";
+      ctx.fillStyle = "rgba(255,255,255,.78)";
+      ctx.fillText(new Date().toLocaleDateString(undefined, {weekday:"long", month:"short", day:"numeric"}), 82, 170);
+      const leaders = standings().slice(0,8);
+      leaders.forEach((player, index) => {
+        const y = 270 + index * 108;
+        ctx.fillStyle = "rgba(255,255,255,.13)";
+        roundRect(ctx, 78, y - 64, 924, 82, 28);
+        ctx.fill();
+        ctx.fillStyle = index === 0 ? "#f4c95d" : "#ffffff";
+        ctx.font = "900 44px Inter, Arial";
+        ctx.fillText(`${index + 1}`, 112, y - 10);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(player.name, 190, y - 10);
+        ctx.font = "800 34px Inter, Arial";
+        ctx.fillStyle = "rgba(255,255,255,.82)";
+        ctx.fillText(`${player.points} pts`, 790, y - 10);
+      });
+      ctx.fillStyle = "rgba(255,255,255,.75)";
+      ctx.font = "700 28px Inter, Arial";
+      ctx.fillText("Kinetik", 80, h - 82);
+      ctx.font = "500 24px Inter, Arial";
+      ctx.fillText("Plans. People. Play.", 80, h - 48);
+      state.shareUrl = canvas.toDataURL("image/png");
+      $("#preview").innerHTML = `<img src="${state.shareUrl}" alt="Americano Padel result card">`;
+      return state.shareUrl;
+    }
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + width, y, x + width, y + height, radius);
+      ctx.arcTo(x + width, y + height, x, y + height, radius);
+      ctx.arcTo(x, y + height, x, y, radius);
+      ctx.arcTo(x, y, x + width, y, radius);
+      ctx.closePath();
+    }
+    function downloadShare() {
+      if (!state.shareUrl) renderShareCard();
+      const a = document.createElement("a");
+      a.href = state.shareUrl;
+      a.download = "kinetik-padel-results.png";
+      a.click();
+    }
+    async function shareCard() {
+      if (!state.shareUrl) renderShareCard();
+      try {
+        const blob = await (await fetch(state.shareUrl)).blob();
+        const file = new File([blob], "kinetik-padel-results.png", {type:"image/png"});
+        if (navigator.canShare && navigator.canShare({files:[file]})) {
+          await navigator.share({title:"Americano Padel Results", files:[file]});
+        } else {
+          downloadShare();
+        }
+      } catch {
+        downloadShare();
+      }
+    }
+    function notify(message) {
+      Bridge.send("SHOW_TOAST", {message});
+      if (window.parent === window) alert(message);
+    }
+    $("#addPlayer").onclick = () => {
+      const value = $("#playerInput").value.trim();
+      if (!value) return;
+      if (!state.players.includes(value)) state.players.push(value);
+      $("#playerInput").value = "";
+      render();
+    };
+    $("#playerInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") $("#addPlayer").click();
+    });
+    $("#generateBtn").onclick = generateRounds;
+    $("#resetBtn").onclick = () => {
+      state.rounds = [];
+      state.scores = {};
+      state.saved = false;
+      render();
+    };
+    $("#saveBtn").onclick = saveTournament;
+    $("#renderShare").onclick = renderShareCard;
+    $("#downloadBtn").onclick = downloadShare;
+    $("#shareBtn").onclick = shareCard;
+    $("#doneBtn").onclick = () => Bridge.send("APP_DONE");
+    $("#courts").onchange = render;
+    $("#roundCount").onchange = render;
+    $$("[data-view]").forEach((button) => button.onclick = () => switchView(button.dataset.view));
+    render();
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("./PWA_SW.js").catch(() => {});
+  </script>
+</body>
+</html>

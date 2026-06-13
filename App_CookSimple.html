@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#ff8b3d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Cook"><title>Cook Simple - Kinetik</title><script type="application/kinetik-app+json">
+{
+  "appId": "cook-simple",
+  "name": "Cook Simple",
+  "shortName": "Cook",
+  "icon": "🍳",
+  "gradient": [
+    "#ff8b3d",
+    "#23b993"
+  ],
+  "category": "cooking",
+  "tagline": "Pick one simple meal.",
+  "about": "A lightweight cooking helper for deciding and cooking one meal. Choose a meal style, follow short steps, use a timer, and save what you cooked.",
+  "audience": "all",
+  "circleTypes": [
+    "family",
+    "friends"
+  ],
+  "worksWith": [
+    "offline",
+    "standalone"
+  ],
+  "status": "live",
+  "minMembers": 1
+}
+  </script><style>
+    :root{
+      color-scheme:light;
+      --bg:#fff4ec;
+      --ink:#1f2633;
+      --muted:rgba(31,38,51,.62);
+      --panel:rgba(255,255,255,.80);
+      --soft:rgba(255,255,255,.60);
+      --line:rgba(31,38,51,.13);
+      --accent:#ff8b3d;
+      --accent2:#23b993;
+      --good:#22b98f;
+      --danger:#e85f7a;
+      --shadow:0 22px 60px rgba(42,66,96,.16);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    [data-theme="dark"]{
+      color-scheme:dark;
+      --bg:#0d111b;
+      --ink:#f7f9ff;
+      --muted:rgba(247,249,255,.66);
+      --panel:rgba(22,28,42,.82);
+      --soft:rgba(255,255,255,.08);
+      --line:rgba(255,255,255,.13);
+      --shadow:0 24px 70px rgba(0,0,0,.38);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      min-height:100dvh;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 14% 8%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 34%),
+        radial-gradient(circle at 88% 10%,color-mix(in srgb,var(--accent2) 20%,transparent),transparent 31%),
+        linear-gradient(180deg,rgba(255,255,255,.25),transparent 50%),
+        var(--bg);
+      overflow:hidden;
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{
+      width:min(100%,680px);
+      height:100dvh;
+      margin:0 auto;
+      padding:calc(12px + env(safe-area-inset-top)) 12px calc(12px + env(safe-area-inset-bottom));
+      display:grid;
+      grid-template-rows:auto minmax(0,1fr);
+      gap:10px;
+      overflow:hidden;
+    }
+    .top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .brand{display:flex;align-items:center;gap:9px;min-width:0}
+    .mark{width:38px;height:38px;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 30px color-mix(in srgb,var(--accent) 24%,transparent);display:grid;place-items:center;color:white;font-size:22px;font-weight:950}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:21px;line-height:1;font-weight:950;letter-spacing:0}
+    h2{font-size:18px;line-height:1.1}
+    h3{font-size:14px;line-height:1.1}
+    .small{font-size:12px;color:var(--muted);line-height:1.25}
+    .screen{display:none;min-height:0;overflow:hidden}
+    .screen.active{display:grid}
+    .center{align-content:center;gap:12px}
+    .main{grid-template-rows:auto minmax(0,1fr) auto;gap:10px}
+    .panel{border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(24px) saturate(1.16);box-shadow:var(--shadow);border-radius:24px;padding:14px;overflow:hidden}
+    .flat{box-shadow:none;background:var(--soft)}
+    .grid{display:grid;gap:9px}
+    .two{grid-template-columns:1fr 1fr}
+    .row{display:flex;align-items:center;gap:8px}
+    .between{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    label{display:grid;gap:6px;font-size:12px;font-weight:850;color:var(--muted)}
+    input,select{width:100%;min-height:44px;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:15px;padding:11px 12px;outline:none}
+    input:focus,select:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 14%,transparent)}
+    .btn{min-height:44px;border:0;border-radius:15px;padding:10px 13px;color:white;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 28px color-mix(in srgb,var(--accent) 22%,transparent);font-weight:950;display:inline-flex;align-items:center;justify-content:center;gap:7px;touch-action:manipulation}
+    .btn.secondary{background:var(--soft);border:1px solid var(--line);color:var(--ink);box-shadow:none}
+    .btn.danger{background:rgba(232,95,122,.12);border:1px solid rgba(232,95,122,.28);color:var(--danger);box-shadow:none}
+    .icon-btn{width:44px;height:44px;border-radius:15px;padding:0;flex:0 0 auto}
+    .chip{border:1px solid var(--line);background:var(--soft);border-radius:999px;padding:7px 10px;color:var(--muted);font-size:12px;font-weight:850}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+    .stat{border:1px solid var(--line);background:var(--soft);border-radius:16px;padding:9px;text-align:center;min-width:0}
+    .stat b{display:block;font-size:18px;line-height:1}
+    .stat span{display:block;margin-top:3px;font-size:11px;color:var(--muted);font-weight:850}
+    .scroll{min-height:0;overflow:auto;display:grid;gap:9px;overscroll-behavior:contain}
+    .drawer{position:fixed;inset:auto 10px calc(10px + env(safe-area-inset-bottom)) 10px;max-width:660px;margin:0 auto;transform:translateY(120%);transition:transform .22s ease;z-index:10}
+    .drawer.open{transform:translateY(0)}
+    .drawer-list{max-height:48dvh;overflow:auto;display:grid;gap:7px;margin-top:10px}
+    .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translate(-50%,120px);background:#1d2635;color:white;border-radius:999px;padding:10px 14px;box-shadow:0 12px 34px rgba(0,0,0,.24);font-size:13px;font-weight:850;transition:transform .22s ease;z-index:20}
+    .toast.show{transform:translate(-50%,0)}
+    @media(max-height:720px){.app{gap:7px;padding-top:calc(8px + env(safe-area-inset-top));padding-bottom:calc(8px + env(safe-area-inset-bottom))}.panel{padding:11px}}
+
+.cook-visual{height:116px;border-radius:24px;border:1px solid var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 16%,var(--soft)),var(--soft));display:grid;place-items:center}.cook-visual svg{width:min(100%,240px);height:104px}.recipe-title{font-size:30px;line-height:1.02;font-weight:950}.list{display:grid;gap:7px}.list span{border:1px solid var(--line);background:var(--soft);border-radius:14px;padding:9px}.timer{font-size:38px;text-align:center;font-weight:950}
+  </style></head><body><main class="app"><header class="top"><div class="brand"><div class="mark">🍳</div><div><h1>Cook Simple</h1><p class="small" id="circleLabel">Standalone circle</p></div></div><button class="btn secondary icon-btn" id="themeBtn"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v2.2M12 18.8V21M4.4 4.4 6 6M18 18l1.6 1.6M3 12h2.2M18.8 12H21M4.4 19.6 6 18M18 6l1.6-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" stroke-width="2"/></svg></button></header><section class="screen main active"><div class="panel grid"><div class="two grid"><select id="typeSelect"><option>Quick</option><option>Family</option><option>Healthy</option><option>Comfort</option></select><button class="btn" id="pickBtn">Pick Meal</button></div></div><div class="scroll"><div class="panel grid"><div class="cook-visual"><svg viewBox="0 0 240 104" aria-hidden="true"><path d="M66 66h92c-4 18-20 30-46 30S70 84 66 66z" fill="none" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/><path d="M58 66h108" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"/><path d="M86 44c-10-10 10-16 0-28M118 44c-10-10 10-16 0-28M150 44c-10-10 10-16 0-28" stroke="var(--accent2)" stroke-width="6" stroke-linecap="round"/><circle cx="176" cy="68" r="10" fill="var(--accent)"/></svg></div><span class="chip" id="metaText">Quick</span><h2 class="recipe-title" id="titleText">Recipe</h2><h3>Ingredients</h3><div class="list" id="ingredients"></div><h3>Steps</h3><div class="list" id="steps"></div></div><div class="panel grid"><div class="timer" id="timerText">10:00</div><div class="two grid"><button class="btn" id="timerBtn">Start Timer</button><button class="btn secondary" id="doneBtn">Cooked</button></div></div></div><div class="stats"><div class="stat"><b id="cookedText">0</b><span>cooked</span></div><div class="stat"><b id="lastText">-</b><span>last</span></div><div class="stat"><b id="timeText">0</b><span>min</span></div></div></section></main><div class="toast" id="toast">Saved</div><script>
+    const AppConfig={"appId":"cook-simple","storagePrefix":"kinetik_cook_simple","sessionCollection":"cooking_sessions"};const recipes=[{"type":"Quick","title":"Egg Fried Rice","minutes":12,"ingredients":["Cooked rice","2 eggs","Soy sauce","Spring onion"],"steps":["Scramble eggs first","Add rice and stir","Season lightly","Finish with spring onion"]},{"type":"Quick","title":"Tuna Toast Melt","minutes":10,"ingredients":["Bread","Tuna","Cheese","Black pepper"],"steps":["Mix tuna with pepper","Place on bread","Add cheese","Toast until melted"]},{"type":"Family","title":"Chicken Pasta","minutes":25,"ingredients":["Pasta","Chicken strips","Tomato sauce","Parmesan"],"steps":["Boil pasta","Cook chicken","Add sauce","Toss pasta together"]},{"type":"Family","title":"Mini Taco Night","minutes":20,"ingredients":["Tortillas","Minced beef or beans","Lettuce","Cheese"],"steps":["Cook filling","Warm tortillas","Set toppings","Build at the table"]},{"type":"Healthy","title":"Salmon Rice Bowl","minutes":20,"ingredients":["Salmon","Rice","Cucumber","Yogurt sauce"],"steps":["Cook salmon","Slice cucumber","Add rice to bowl","Top with sauce"]},{"type":"Healthy","title":"Chickpea Salad","minutes":10,"ingredients":["Chickpeas","Tomato","Cucumber","Lemon"],"steps":["Rinse chickpeas","Chop vegetables","Mix with lemon","Rest for five minutes"]},{"type":"Comfort","title":"Grilled Cheese Soup","minutes":18,"ingredients":["Bread","Cheese","Tomato soup","Butter"],"steps":["Toast cheese sandwich","Warm soup","Cut sandwich strips","Dip and eat"]},{"type":"Comfort","title":"Creamy Noodles","minutes":15,"ingredients":["Noodles","Cream cheese","Garlic","Peas"],"steps":["Boil noodles","Warm garlic and cheese","Add peas","Mix until creamy"]}];const $=(id)=>document.getElementById(id);const state={circleId:"standalone_demo",circleType:"family",theme:localStorage.getItem(AppConfig.storagePrefix+"_theme")||"light",recipe:null,remaining:0,timer:null,progress:readProgress()};document.documentElement.dataset.theme=state.theme;if(window.self!==window.top)document.body.classList.add("embedded");const Bridge={send(type,payload){if(window.parent&&window.parent!==window)window.parent.postMessage({type,appId:AppConfig.appId,payload},"*")}};addEventListener("message",(event)=>{const msg=event.data||{};if(msg.type!=="INIT_APP")return;const ctx=msg.payload||{};state.circleId=ctx.circleId||state.circleId;state.circleType=ctx.circleType||state.circleType;if(ctx.theme)setTheme(ctx.theme);$("circleLabel").textContent=state.circleType+" circle"});
+    function setTheme(theme){state.theme=theme==="dark"?"dark":"light";document.documentElement.dataset.theme=state.theme;localStorage.setItem(AppConfig.storagePrefix+"_theme",state.theme)}function readProgress(){try{return JSON.parse(localStorage.getItem(AppConfig.storagePrefix+"_progress")||'{"cooked":0,"last":"-","minutes":0}')}catch{return {cooked:0,last:"-",minutes:0}}}function saveProgress(){localStorage.setItem(AppConfig.storagePrefix+"_progress",JSON.stringify(state.progress))}
+    function pick(){const type=$("typeSelect").value;const pool=recipes.filter((r)=>r.type===type);state.recipe=pool[Math.floor(Math.random()*pool.length)];state.remaining=state.recipe.minutes*60;clearInterval(state.timer);state.timer=null;render()}function render(){const r=state.recipe;$("metaText").textContent=r.type+" · "+r.minutes+" min";$("titleText").textContent=r.title;$("ingredients").innerHTML=r.ingredients.map((x)=>'<span>'+escapeHtml(x)+'</span>').join("");$("steps").innerHTML=r.steps.map((x,i)=>'<span>'+(i+1)+'. '+escapeHtml(x)+'</span>').join("");$("timerText").textContent=formatTime(state.remaining);$("timerBtn").textContent=state.timer?"Pause Timer":"Start Timer";$("cookedText").textContent=state.progress.cooked;$("lastText").textContent=state.progress.last;$("timeText").textContent=state.progress.minutes}
+    function toggleTimer(){if(state.timer){clearInterval(state.timer);state.timer=null;render();return}state.timer=setInterval(()=>{state.remaining=Math.max(0,state.remaining-1);$("timerText").textContent=formatTime(state.remaining);if(state.remaining===0){clearInterval(state.timer);state.timer=null;toast("Timer complete");render()}},1000);render()}function cooked(){state.progress.cooked++;state.progress.last=state.recipe.title;state.progress.minutes+=state.recipe.minutes;saveProgress();Bridge.send("DATA_CREATE",{collection:AppConfig.sessionCollection,payload:{circleId:state.circleId,appId:AppConfig.appId,recipe:state.recipe.title,minutes:state.recipe.minutes,createdAt:new Date().toISOString()}});toast("Cooked saved");pick()}
+    function toast(message){$("toast").textContent=message;$("toast").classList.add("show");Bridge.send("SHOW_TOAST",{message});clearTimeout(toast.timer);toast.timer=setTimeout(()=>$("toast").classList.remove("show"),1300)}function formatTime(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}function escapeHtml(text){return String(text).replace(/[&<>"']/g,(m)=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+    $("themeBtn").onclick=()=>setTheme(state.theme==="dark"?"light":"dark");$("pickBtn").onclick=pick;$("timerBtn").onclick=toggleTimer;$("doneBtn").onclick=cooked;pick();
+  </script></body></html>
