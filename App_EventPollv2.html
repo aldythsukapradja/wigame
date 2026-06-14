@@ -1,0 +1,1994 @@
+<!--
+KINETIK APP STANDARD v0.2
+
+PRODUCT:
+Kinetik is a private life app for Family and Friends circles.
+
+APP:
+Event Poll is a standalone Social Circle DNA app rebuilt from scratch.
+Real analog targets: Doodle, When2meet, and StrawPoll.
+
+ARCHITECTURE:
+- Single self-contained HTML file.
+- Inline CSS and vanilla JavaScript only.
+- No external frameworks, CDNs, build step, or backend dependency.
+- Works directly from a local HTML file.
+- Works embedded inside the Kinetik shell iframe.
+- Uses AppBridge messages for future parent-shell persistence.
+- Uses localStorage for direct-file progress and history.
+
+KINETIK INTEGRATION:
+- Detects embedded mode with window.self !== window.top.
+- Listens for INIT_APP messages.
+- Accepts circleId, circleType, memberId, personId, theme, and context.
+- Sends DATA_CREATE, DATA_UPDATE, and SHOW_TOAST bridge messages.
+
+DATA:
+- Storage prefix: kinetik_rebuild_event_poll.
+- App-specific future records should be stored in AppRecords with circleId, appId, collection, and payloadJson.
+- This app must not access another circle's data.
+
+THEME:
+- Light theme is default.
+- Dark theme tokens are included and can be controlled locally or by INIT_APP.
+
+React/TypeScript app scale-up note:
+- This single-file app should later become a React feature module or standalone route.
+- It must keep using AppBridge/DataAPI contracts.
+- It must not access another circle's data.
+- It must store app-specific data in AppRecords using circleId, appId, collection, payloadJson.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8fbff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Event Poll">
+  <title>Event Poll - Kinetik Rebuild</title>
+  <script type="application/kinetik-app+json">
+{
+  "appId": "event-poll",
+  "name": "Event Poll",
+  "shortName": "Poll",
+  "icon": "EP",
+  "gradient": ["#4f7cff", "#8b5cf6"],
+  "category": "social",
+  "tagline": "Find the best time together.",
+  "about": "Create a simple event poll, collect votes from your circle, and turn the winning option into a shared plan.",
+  "audience": "families and friends planning events",
+  "circleTypes": ["family", "friends"],
+  "worksWith": ["offline", "standalone", "embedded", "local progress"],
+  "status": "live",
+  "minMembers": 2
+}
+  </script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f8ff;
+      --bg-2: #eef3ff;
+      --ink: #111827;
+      --muted: #6f7a8e;
+      --faint: #98a3b7;
+      --panel: rgba(255,255,255,.82);
+      --panel-strong: rgba(255,255,255,.96);
+      --line: rgba(38,48,74,.10);
+      --line-strong: rgba(38,48,74,.16);
+      --shadow: 0 24px 70px rgba(55,73,116,.17);
+      --shadow-soft: 0 14px 34px rgba(55,73,116,.10);
+      --blue: #3578ff;
+      --violet: #8759ff;
+      --pink: #f35d9f;
+      --green: #16b984;
+      --amber: #f5a623;
+      --red: #ef5466;
+      --white: #ffffff;
+      --radius-lg: 28px;
+      --radius-md: 22px;
+      --radius-sm: 16px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #090d16;
+      --bg-2: #11182a;
+      --ink: #f8fbff;
+      --muted: #b8c0d2;
+      --faint: #7e8aa2;
+      --panel: rgba(18,25,42,.76);
+      --panel-strong: rgba(19,27,46,.96);
+      --line: rgba(226,233,255,.12);
+      --line-strong: rgba(226,233,255,.20);
+      --shadow: 0 24px 70px rgba(0,0,0,.36);
+      --shadow-soft: 0 14px 34px rgba(0,0,0,.26);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    body {
+      min-height: 100dvh;
+      background:
+        radial-gradient(circle at 16% -8%, rgba(79,124,255,.20), transparent 34%),
+        radial-gradient(circle at 92% 2%, rgba(243,93,159,.16), transparent 30%),
+        radial-gradient(circle at 80% 94%, rgba(22,185,132,.13), transparent 34%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .58;
+      background-image:
+        linear-gradient(rgba(255,255,255,.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.30) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: radial-gradient(circle at 50% 0%, black, transparent 72%);
+    }
+
+    [data-theme="dark"] body::before {
+      opacity: .18;
+      background-image:
+        linear-gradient(rgba(255,255,255,.22) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.18) 1px, transparent 1px);
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+      color: inherit;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+      outline: 3px solid rgba(53,120,255,.28);
+      outline-offset: 2px;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 780px;
+      height: 100dvh;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+    }
+
+    body.embedded .app {
+      max-width: none;
+    }
+
+    .topbar {
+      padding: calc(12px + var(--safe-top)) 16px 10px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mark {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 14px;
+      font-weight: 950;
+      letter-spacing: 0;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.26), transparent 45%),
+        linear-gradient(135deg, #4f7cff, #8b5cf6);
+      box-shadow: 0 16px 34px rgba(79,124,255,.32);
+    }
+
+    .title-block {
+      min-width: 0;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .title-row h1 {
+      font-size: clamp(20px, 5vw, 25px);
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .live-chip {
+      flex: 0 0 auto;
+      padding: 5px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 900;
+      color: var(--green);
+      background: rgba(22,185,132,.12);
+      border: 1px solid rgba(22,185,132,.18);
+    }
+
+    .context-line {
+      margin-top: 5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .context-line span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(22px);
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    .icon-btn:active {
+      transform: scale(.96);
+    }
+
+    .icon {
+      width: 20px;
+      height: 20px;
+      display: block;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .content {
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 6px 16px 18px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .content::-webkit-scrollbar,
+    .sheet-body::-webkit-scrollbar,
+    .history-list::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+      display: none;
+    }
+
+    .hero {
+      position: relative;
+      min-height: 176px;
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      overflow: hidden;
+      color: white;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(255,255,255,.38), transparent 26%),
+        linear-gradient(135deg, #315eff 0%, #8457ff 52%, #f35d9f 100%);
+      box-shadow: 0 28px 70px rgba(79,83,186,.32);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -24px -74px auto;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      border: 28px solid rgba(255,255,255,.18);
+    }
+
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .hero-kicker {
+      font-size: 11px;
+      font-weight: 950;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      opacity: .76;
+    }
+
+    .poll-title {
+      margin-top: 8px;
+      max-width: 460px;
+      font-size: clamp(25px, 7vw, 38px);
+      line-height: .98;
+      letter-spacing: 0;
+    }
+
+    .hero-meta {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .hero-pill {
+      min-height: 30px;
+      padding: 7px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.22);
+      color: rgba(255,255,255,.92);
+      font-size: 12px;
+      font-weight: 850;
+      backdrop-filter: blur(18px);
+    }
+
+    .result-orb {
+      flex: 0 0 auto;
+      width: 76px;
+      height: 76px;
+      border-radius: 28px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.16);
+      border: 1px solid rgba(255,255,255,.28);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.20);
+      backdrop-filter: blur(18px);
+    }
+
+    .result-orb svg {
+      width: 52px;
+      height: 52px;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .stat {
+      min-width: 0;
+      min-height: 66px;
+      padding: 11px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.15);
+      border: 1px solid rgba(255,255,255,.20);
+      backdrop-filter: blur(18px);
+    }
+
+    .stat b {
+      display: block;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 7px;
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(255,255,255,.78);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tabs {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+      margin: 14px 0;
+      padding: 4px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.60);
+      border: 1px solid var(--line);
+      backdrop-filter: blur(24px);
+      box-shadow: 0 12px 30px rgba(55,73,116,.08);
+    }
+
+    [data-theme="dark"] .tabs {
+      background: rgba(18,25,42,.72);
+    }
+
+    .tab {
+      height: 40px;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+      transition: transform .18s ease, background .18s ease, color .18s ease, box-shadow .18s ease;
+    }
+
+    .tab.active {
+      color: var(--ink);
+      background: var(--panel-strong);
+      box-shadow: 0 10px 22px rgba(55,73,116,.12);
+    }
+
+    .tab:active {
+      transform: scale(.98);
+    }
+
+    .section {
+      display: none;
+      animation: rise .28s ease both;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .panel {
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(24px);
+    }
+
+    .voter-panel {
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .panel-head h2 {
+      font-size: 15px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .voter-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .voter-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .voter {
+      flex: 0 0 auto;
+      height: 42px;
+      padding: 0 12px 0 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.64);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 900;
+      font-size: 13px;
+      transition: transform .18s ease, color .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    [data-theme="dark"] .voter {
+      background: rgba(255,255,255,.06);
+    }
+
+    .voter.active {
+      color: white;
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      border-color: transparent;
+      box-shadow: 0 12px 28px rgba(79,124,255,.24);
+    }
+
+    .voter:active,
+    .option-card:active,
+    .primary:active,
+    .secondary:active {
+      transform: scale(.985);
+    }
+
+    .avatar {
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 11px;
+      font-weight: 950;
+      background: linear-gradient(135deg, #2bd4a8, #3578ff);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.25);
+    }
+
+    .option-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option-card {
+      width: 100%;
+      min-height: 92px;
+      padding: 14px;
+      text-align: left;
+      border-radius: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 30px rgba(55,73,116,.08);
+      backdrop-filter: blur(24px);
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    .option-card.selected {
+      border-color: rgba(53,120,255,.42);
+      box-shadow: 0 18px 42px rgba(53,120,255,.16);
+      background:
+        linear-gradient(135deg, rgba(53,120,255,.10), rgba(139,92,246,.08)),
+        var(--panel);
+    }
+
+    .option-main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .option-label {
+      display: block;
+      min-width: 0;
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 950;
+      line-height: 1.16;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .option-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .vote-box {
+      width: 30px;
+      height: 30px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      color: transparent;
+      background: rgba(255,255,255,.68);
+      border: 1px solid var(--line-strong);
+      transition: color .18s ease, background .18s ease, border-color .18s ease;
+    }
+
+    [data-theme="dark"] .vote-box {
+      background: rgba(255,255,255,.07);
+    }
+
+    .selected .vote-box {
+      color: white;
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      border-color: transparent;
+    }
+
+    .meter {
+      position: relative;
+      height: 8px;
+      margin-top: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(119,130,153,.16);
+    }
+
+    .meter span {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--violet), var(--pink));
+      transition: width .28s ease;
+    }
+
+    .voted-by {
+      min-height: 22px;
+      margin-top: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mini-face {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-size: 10px;
+      font-weight: 950;
+      background: linear-gradient(135deg, #16b984, #3578ff);
+      box-shadow: 0 5px 12px rgba(55,73,116,.16);
+    }
+
+    .empty-note {
+      padding: 20px;
+      border-radius: 24px;
+      background: var(--panel);
+      border: 1px dashed var(--line-strong);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+      text-align: center;
+    }
+
+    .result-card {
+      padding: 16px;
+      margin-bottom: 10px;
+      border-radius: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 30px rgba(55,73,116,.08);
+      backdrop-filter: blur(24px);
+    }
+
+    .winner {
+      min-height: 132px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(22,185,132,.18), transparent 32%),
+        var(--panel);
+    }
+
+    .winner h2 {
+      font-size: 22px;
+      line-height: 1.05;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .winner p {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 750;
+    }
+
+    .score-ring {
+      width: 86px;
+      height: 86px;
+      border-radius: 29px;
+      display: grid;
+      place-items: center;
+      color: white;
+      background:
+        radial-gradient(circle at 30% 18%, rgba(255,255,255,.38), transparent 26%),
+        linear-gradient(135deg, var(--green), var(--blue));
+      box-shadow: 0 18px 42px rgba(22,185,132,.24);
+    }
+
+    .score-ring b {
+      font-size: 27px;
+      line-height: 1;
+    }
+
+    .score-ring span {
+      display: block;
+      font-size: 10px;
+      font-weight: 900;
+      opacity: .78;
+      text-align: center;
+    }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .rank-row + .rank-row {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .rank {
+      width: 34px;
+      height: 34px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 950;
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+    }
+
+    .rank-label {
+      min-width: 0;
+    }
+
+    .rank-label b {
+      display: block;
+      font-size: 14px;
+      line-height: 1.15;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank-label span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .score-chip {
+      min-width: 46px;
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--blue);
+      background: rgba(53,120,255,.10);
+      border: 1px solid rgba(53,120,255,.14);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 10px;
+      max-height: min(420px, calc(100dvh - 260px));
+      overflow-y: auto;
+      padding-bottom: 2px;
+    }
+
+    .history-item {
+      width: 100%;
+      min-height: 78px;
+      padding: 13px;
+      border-radius: 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: 0 10px 26px rgba(55,73,116,.08);
+    }
+
+    .history-item b {
+      display: block;
+      font-size: 14px;
+      line-height: 1.2;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-item span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bottom-bar {
+      padding: 10px 16px calc(12px + var(--safe-bottom));
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      background: linear-gradient(180deg, transparent, rgba(245,248,255,.88) 30%, rgba(245,248,255,.96));
+      backdrop-filter: blur(20px);
+    }
+
+    [data-theme="dark"] .bottom-bar {
+      background: linear-gradient(180deg, transparent, rgba(9,13,22,.86) 30%, rgba(9,13,22,.96));
+    }
+
+    .primary,
+    .secondary {
+      min-height: 50px;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      font-size: 14px;
+      font-weight: 950;
+      letter-spacing: 0;
+      transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+    }
+
+    .primary {
+      color: white;
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      box-shadow: 0 16px 34px rgba(79,124,255,.25);
+    }
+
+    .secondary {
+      min-width: 54px;
+      padding: 0 15px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .secondary.danger {
+      color: var(--red);
+    }
+
+    .primary[disabled],
+    .secondary[disabled] {
+      opacity: .52;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: end;
+      justify-content: center;
+      background: rgba(12,18,32,.28);
+      backdrop-filter: blur(8px);
+    }
+
+    .sheet.open {
+      display: flex;
+      animation: fade .18s ease both;
+    }
+
+    @keyframes fade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .sheet-panel {
+      width: min(100%, 760px);
+      max-height: calc(100dvh - 26px);
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      border-radius: 30px 30px 0 0;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: sheetIn .24s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    @keyframes sheetIn {
+      from {
+        transform: translateY(20px);
+      }
+      to {
+        transform: translateY(0);
+      }
+    }
+
+    .sheet-head {
+      padding: 14px 16px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .grabber {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      width: 42px;
+      height: 5px;
+      border-radius: 999px;
+      transform: translateX(-50%);
+      background: rgba(129,140,168,.35);
+    }
+
+    .sheet-title {
+      padding-top: 6px;
+      min-width: 0;
+    }
+
+    .sheet-title h2 {
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .sheet-title p {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .sheet-body {
+      min-height: 0;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .field-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .input,
+    .textarea,
+    .select {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      padding: 12px 13px;
+      color: var(--ink);
+      background: rgba(255,255,255,.66);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
+    }
+
+    [data-theme="dark"] .input,
+    [data-theme="dark"] .textarea,
+    [data-theme="dark"] .select {
+      background: rgba(255,255,255,.06);
+    }
+
+    .textarea {
+      min-height: 116px;
+      resize: vertical;
+      line-height: 1.35;
+    }
+
+    .sheet-actions {
+      padding: 10px 16px calc(14px + var(--safe-bottom));
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 40;
+      left: 50%;
+      bottom: calc(76px + var(--safe-bottom));
+      max-width: min(340px, calc(100vw - 32px));
+      padding: 12px 14px;
+      border-radius: 999px;
+      transform: translate(-50%, 18px);
+      opacity: 0;
+      pointer-events: none;
+      color: white;
+      background: rgba(16,23,38,.88);
+      box-shadow: 0 18px 46px rgba(0,0,0,.20);
+      font-size: 13px;
+      font-weight: 850;
+      transition: opacity .22s ease, transform .22s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .confetti {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      overflow: hidden;
+    }
+
+    .burst {
+      position: absolute;
+      width: 8px;
+      height: 14px;
+      border-radius: 4px;
+      opacity: 0;
+      animation: burst 820ms ease-out forwards;
+    }
+
+    @keyframes burst {
+      0% {
+        opacity: 1;
+        transform: translate3d(0,0,0) rotate(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translate3d(var(--x), var(--y), 0) rotate(210deg);
+      }
+    }
+
+    @media (min-width: 720px) {
+      .content {
+        padding-inline: 22px;
+      }
+
+      .hero {
+        min-height: 204px;
+      }
+
+      .option-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .winner {
+        min-height: 156px;
+      }
+    }
+
+    @media (max-width: 370px) {
+      .topbar {
+        padding-inline: 12px;
+        gap: 9px;
+      }
+
+      .mark {
+        width: 42px;
+        height: 42px;
+        border-radius: 15px;
+      }
+
+      .icon-btn {
+        width: 39px;
+        height: 39px;
+      }
+
+      .hero,
+      .panel,
+      .option-card,
+      .result-card {
+        border-radius: 22px;
+      }
+
+      .poll-title {
+        font-size: 24px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-live="polite">
+    <header class="topbar">
+      <div class="mark" aria-hidden="true">EP</div>
+      <div class="title-block">
+        <div class="title-row">
+          <h1>Event Poll</h1>
+          <span class="live-chip" id="statusChip">LIVE</span>
+        </div>
+        <div class="context-line">
+          <span id="circleLabel">Standalone circle</span>
+          <span aria-hidden="true">/</span>
+          <span id="saveLabel">Saved locally</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" type="button" id="themeButton" aria-label="Toggle theme">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v2"></path><path d="M12 19v2"></path><path d="m4.2 4.2 1.4 1.4"></path><path d="m18.4 18.4 1.4 1.4"></path><path d="M3 12h2"></path><path d="M19 12h2"></path><path d="m4.2 19.8 1.4-1.4"></path><path d="m18.4 5.6 1.4-1.4"></path><circle cx="12" cy="12" r="4"></circle>
+          </svg>
+        </button>
+        <button class="icon-btn" type="button" id="newButton" aria-label="New poll">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14"></path><path d="M5 12h14"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section class="content" id="content">
+      <article class="hero">
+        <div class="hero-grid">
+          <div class="hero-top">
+            <div>
+              <div class="hero-kicker" id="pollKind">TIME POLL</div>
+              <h2 class="poll-title" id="pollTitle">Friday dinner plan</h2>
+              <div class="hero-meta">
+                <span class="hero-pill" id="deadlinePill">Closes tonight</span>
+                <span class="hero-pill" id="optionPill">4 options</span>
+              </div>
+            </div>
+            <div class="result-orb" aria-hidden="true">
+              <svg viewBox="0 0 64 64">
+                <defs>
+                  <linearGradient id="orbGrad" x1="0" x2="1">
+                    <stop offset="0" stop-color="#ffffff" stop-opacity=".96"></stop>
+                    <stop offset="1" stop-color="#ffffff" stop-opacity=".58"></stop>
+                  </linearGradient>
+                </defs>
+                <rect x="13" y="16" width="38" height="35" rx="12" fill="none" stroke="url(#orbGrad)" stroke-width="4"></rect>
+                <path d="M21 12v10M43 12v10M21 31h22M21 41h14" stroke="url(#orbGrad)" stroke-width="4" stroke-linecap="round"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="stat"><b id="votedCount">0/0</b><span>voted</span></div>
+            <div class="stat"><b id="leadCount">0</b><span>top votes</span></div>
+            <div class="stat"><b id="draftCount">0</b><span>your picks</span></div>
+          </div>
+        </div>
+      </article>
+
+      <nav class="tabs" aria-label="Poll sections">
+        <button class="tab active" type="button" data-tab="vote">Vote</button>
+        <button class="tab" type="button" data-tab="results">Results</button>
+        <button class="tab" type="button" data-tab="history">History</button>
+      </nav>
+
+      <section class="section active" id="sectionVote">
+        <div class="panel voter-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Voting as</h2>
+              <p class="muted" id="voterHint">Choose your circle profile</p>
+            </div>
+          </div>
+          <div class="voter-row" id="voterRow"></div>
+        </div>
+        <div class="option-list" id="optionList"></div>
+      </section>
+
+      <section class="section" id="sectionResults">
+        <div id="resultsView"></div>
+      </section>
+
+      <section class="section" id="sectionHistory">
+        <div class="panel voter-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Poll history</h2>
+              <p class="muted">Saved on this device</p>
+            </div>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </div>
+      </section>
+    </section>
+
+    <footer class="bottom-bar">
+      <button class="primary" type="button" id="castButton">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20 6 9 17l-5-5"></path>
+        </svg>
+        Cast vote
+      </button>
+      <button class="secondary" type="button" id="shareButton" aria-label="Copy result summary">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 12h8"></path><path d="M12 8v8"></path><rect x="4" y="4" width="16" height="16" rx="5"></rect>
+        </svg>
+      </button>
+    </footer>
+  </main>
+
+  <section class="sheet" id="composeSheet" aria-modal="true" role="dialog" aria-labelledby="composeTitle">
+    <div class="sheet-panel">
+      <span class="grabber" aria-hidden="true"></span>
+      <header class="sheet-head">
+        <div class="sheet-title">
+          <h2 id="composeTitle">New poll</h2>
+          <p>Create a fresh circle vote</p>
+        </div>
+        <button class="icon-btn" type="button" id="closeSheet" aria-label="Close new poll">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>
+          </svg>
+        </button>
+      </header>
+      <div class="sheet-body">
+        <div class="field-grid">
+          <div class="field">
+            <label for="pollTitleInput">Poll title</label>
+            <input class="input" id="pollTitleInput" type="text" maxlength="70" value="Saturday breakfast meet-up">
+          </div>
+          <div class="field">
+            <label for="kindInput">Poll type</label>
+            <select class="select" id="kindInput">
+              <option value="time">Time poll</option>
+              <option value="place">Place poll</option>
+              <option value="activity">Activity poll</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="optionsInput">Options, one per line</label>
+            <textarea class="textarea" id="optionsInput">Saturday 9:00 AM
+Saturday 10:30 AM
+Sunday 9:30 AM
+Sunday 11:00 AM</textarea>
+          </div>
+          <div class="field">
+            <label for="peopleInput">People, comma separated</label>
+            <input class="input" id="peopleInput" type="text" value="Aldyth, Omar, Noora, Faisal">
+          </div>
+        </div>
+      </div>
+      <footer class="sheet-actions">
+        <button class="primary" type="button" id="createPollButton">Create poll</button>
+        <button class="secondary danger" type="button" id="resetButton">Reset</button>
+      </footer>
+    </div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+  <div class="confetti" id="confetti"></div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const AppConfig = {
+        appId: "event-poll",
+        storagePrefix: "kinetik_rebuild_event_poll",
+        collection: "event_polls"
+      };
+
+      const palette = ["#3578ff", "#8759ff", "#16b984", "#f35d9f", "#f5a623", "#22b8cf"];
+      const fallbackPoll = {
+        id: "poll_demo_friday_dinner",
+        title: "Friday dinner plan",
+        kind: "time",
+        status: "live",
+        circleId: "standalone_demo",
+        circleType: "friends",
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+        deadlineLabel: "Closes tonight",
+        people: [
+          { id: "p_aldyth", name: "Aldyth" },
+          { id: "p_omar", name: "Omar" },
+          { id: "p_noora", name: "Noora" },
+          { id: "p_faisal", name: "Faisal" }
+        ],
+        options: [
+          { id: "o_fri_1830", label: "Friday 6:30 PM", meta: "Early dinner" },
+          { id: "o_fri_2000", label: "Friday 8:00 PM", meta: "Most relaxed" },
+          { id: "o_sat_1200", label: "Saturday 12:00 PM", meta: "Family friendly" },
+          { id: "o_sat_1930", label: "Saturday 7:30 PM", meta: "Weekend energy" }
+        ],
+        votes: {
+          p_aldyth: ["o_fri_2000", "o_sat_1930"],
+          p_omar: ["o_fri_2000"],
+          p_noora: ["o_sat_1200", "o_sat_1930"]
+        }
+      };
+
+      const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+      const state = {
+        embedded: false,
+        theme: read(AppConfig.storagePrefix + "_theme", "light"),
+        activeTab: "vote",
+        circleId: "standalone_demo",
+        circleType: "friends",
+        memberId: "p_aldyth",
+        personId: "p_aldyth",
+        context: {},
+        poll: readJson(AppConfig.storagePrefix + "_current", null) || clone(fallbackPoll),
+        history: readJson(AppConfig.storagePrefix + "_history", []),
+        draftVotes: []
+      };
+
+      state.draftVotes = currentStoredVotes();
+      boot();
+
+      function boot() {
+        state.embedded = isEmbedded();
+        document.body.classList.toggle("embedded", state.embedded);
+        setTheme(state.theme, false);
+        wireEvents();
+        listenForBridge();
+        ensureActivePerson();
+        render();
+      }
+
+      function isEmbedded() {
+        try {
+          return window.self !== window.top;
+        } catch (error) {
+          return true;
+        }
+      }
+
+      function listenForBridge() {
+        window.addEventListener("message", (event) => {
+          const message = event.data || {};
+          if (message.type !== "INIT_APP") return;
+          const payload = message.payload || {};
+          state.circleId = payload.circleId || state.circleId;
+          state.circleType = payload.circleType || state.circleType;
+          state.memberId = payload.memberId || payload.personId || state.memberId;
+          state.personId = payload.personId || payload.memberId || state.personId;
+          state.context = payload.context || state.context;
+          if (payload.theme) setTheme(payload.theme, true);
+          if (Array.isArray(payload.context?.people) && payload.context.people.length) {
+            state.poll.people = payload.context.people.map((person, index) => ({
+              id: person.personId || person.memberId || person.id || "person_" + index,
+              name: person.displayName || person.name || "Person " + (index + 1)
+            }));
+            ensureActivePerson();
+            persistCurrent();
+          }
+          render();
+        });
+      }
+
+      const Bridge = {
+        send(type, payload) {
+          if (!state.embedded || !window.parent || window.parent === window) return;
+          window.parent.postMessage({ type, appId: AppConfig.appId, payload }, "*");
+        }
+      };
+
+      function wireEvents() {
+        $("#themeButton").addEventListener("click", () => {
+          setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
+        });
+        $("#newButton").addEventListener("click", openSheet);
+        $("#closeSheet").addEventListener("click", closeSheet);
+        $("#composeSheet").addEventListener("click", (event) => {
+          if (event.target.id === "composeSheet") closeSheet();
+        });
+        $("#createPollButton").addEventListener("click", createPoll);
+        $("#resetButton").addEventListener("click", resetDemo);
+        $("#castButton").addEventListener("click", castVote);
+        $("#shareButton").addEventListener("click", shareSummary);
+        $$(".tab").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.activeTab = button.dataset.tab;
+            renderTabs();
+          });
+        });
+        window.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeSheet();
+        });
+      }
+
+      function render() {
+        normalizePoll();
+        renderChrome();
+        renderHero();
+        renderTabs();
+        renderVoters();
+        renderOptions();
+        renderResults();
+        renderHistory();
+      }
+
+      function renderChrome() {
+        const circleName = titleCase(state.circleType || "standalone") + " circle";
+        $("#circleLabel").textContent = state.embedded ? circleName : "Standalone " + circleName.toLowerCase();
+        $("#saveLabel").textContent = state.embedded ? "Bridge ready" : "Saved locally";
+        $("#statusChip").textContent = state.poll.status === "closed" ? "CLOSED" : "LIVE";
+      }
+
+      function renderHero() {
+        const ranked = rankedOptions();
+        const leader = ranked[0];
+        const voted = Object.keys(state.poll.votes || {}).filter((personId) => (state.poll.votes[personId] || []).length).length;
+        $("#pollKind").textContent = kindLabel(state.poll.kind).toUpperCase();
+        $("#pollTitle").textContent = state.poll.title;
+        $("#deadlinePill").textContent = state.poll.deadlineLabel || "Open now";
+        $("#optionPill").textContent = state.poll.options.length + " options";
+        $("#votedCount").textContent = voted + "/" + state.poll.people.length;
+        $("#leadCount").textContent = String(leader ? leader.score : 0);
+        $("#draftCount").textContent = String(state.draftVotes.length);
+      }
+
+      function renderTabs() {
+        $$(".tab").forEach((button) => button.classList.toggle("active", button.dataset.tab === state.activeTab));
+        $("#sectionVote").classList.toggle("active", state.activeTab === "vote");
+        $("#sectionResults").classList.toggle("active", state.activeTab === "results");
+        $("#sectionHistory").classList.toggle("active", state.activeTab === "history");
+      }
+
+      function renderVoters() {
+        const votedIds = new Set(Object.keys(state.poll.votes || {}).filter((id) => (state.poll.votes[id] || []).length));
+        $("#voterRow").innerHTML = state.poll.people.map((person, index) => {
+          const active = person.id === state.personId;
+          const voted = votedIds.has(person.id);
+          return `
+            <button class="voter ${active ? "active" : ""}" type="button" data-person-id="${escapeAttr(person.id)}">
+              <span class="avatar" style="background:${avatarGradient(index)}">${initials(person.name)}</span>
+              <span>${escapeHtml(firstName(person.name))}${voted ? " voted" : ""}</span>
+            </button>
+          `;
+        }).join("");
+        $$("#voterRow .voter").forEach((button) => {
+          button.addEventListener("click", () => {
+            state.personId = button.dataset.personId;
+            state.memberId = state.personId;
+            state.draftVotes = currentStoredVotes();
+            render();
+          });
+        });
+        const active = activePerson();
+        $("#voterHint").textContent = active ? "Current voter: " + active.name : "Choose your circle profile";
+      }
+
+      function renderOptions() {
+        if (!state.poll.options.length) {
+          $("#optionList").innerHTML = `<div class="empty-note">No options yet.</div>`;
+          return;
+        }
+        const maxVotes = Math.max(1, ...rankedOptions().map((item) => item.score));
+        $("#optionList").innerHTML = state.poll.options.map((option, index) => {
+          const selected = state.draftVotes.includes(option.id);
+          const voters = votersForOption(option.id);
+          const percent = Math.round((voters.length / maxVotes) * 100);
+          return `
+            <button class="option-card ${selected ? "selected" : ""}" type="button" data-option-id="${escapeAttr(option.id)}">
+              <span class="option-main">
+                <span>
+                  <span class="option-label">${escapeHtml(option.label)}</span>
+                  <span class="option-meta">
+                    <span>${escapeHtml(option.meta || kindLabel(state.poll.kind))}</span>
+                    <span>${voters.length} vote${voters.length === 1 ? "" : "s"}</span>
+                  </span>
+                </span>
+                <span class="vote-box" aria-hidden="true">
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>
+                </span>
+              </span>
+              <span class="meter" aria-hidden="true"><span style="width:${percent}%"></span></span>
+              <span class="voted-by">${renderMiniFaces(voters, index)}</span>
+            </button>
+          `;
+        }).join("");
+        $$("#optionList .option-card").forEach((card) => {
+          card.addEventListener("click", () => toggleDraftVote(card.dataset.optionId));
+        });
+      }
+
+      function renderResults() {
+        const ranked = rankedOptions();
+        const winner = ranked[0];
+        if (!winner) {
+          $("#resultsView").innerHTML = `<div class="empty-note">Results appear after options are added.</div>`;
+          return;
+        }
+        const agreement = Math.round((winner.score / Math.max(1, state.poll.people.length)) * 100);
+        $("#resultsView").innerHTML = `
+          <article class="result-card winner">
+            <div>
+              <p class="muted">Best option</p>
+              <h2>${escapeHtml(winner.label)}</h2>
+              <p>${winner.score} of ${state.poll.people.length} people selected this. ${agreement >= 75 ? "Strong agreement." : "Worth one more nudge."}</p>
+            </div>
+            <div class="score-ring"><div><b>${agreement}</b><span>agree</span></div></div>
+          </article>
+          <article class="result-card">
+            ${ranked.map((option, index) => `
+              <div class="rank-row">
+                <span class="rank">${index + 1}</span>
+                <span class="rank-label">
+                  <b>${escapeHtml(option.label)}</b>
+                  <span>${escapeHtml(votersForOption(option.id).map((person) => person.name).join(", ") || "No votes yet")}</span>
+                </span>
+                <span class="score-chip">${option.score}</span>
+              </div>
+            `).join("")}
+          </article>
+        `;
+      }
+
+      function renderHistory() {
+        if (!state.history.length) {
+          $("#historyList").innerHTML = `<div class="empty-note">Completed polls will appear here.</div>`;
+          return;
+        }
+        $("#historyList").innerHTML = state.history.map((poll) => {
+          const top = topOptionFor(poll);
+          return `
+            <button class="history-item" type="button" data-history-id="${escapeAttr(poll.id)}">
+              <span>
+                <b>${escapeHtml(poll.title)}</b>
+                <span>${escapeHtml(top ? top.label : "No winning option")} / ${formatShortDate(poll.archivedAt || poll.createdAt)}</span>
+              </span>
+              <span class="score-chip">${Object.keys(poll.votes || {}).length}</span>
+            </button>
+          `;
+        }).join("");
+        $$("#historyList .history-item").forEach((button) => {
+          button.addEventListener("click", () => loadHistory(button.dataset.historyId));
+        });
+      }
+
+      function toggleDraftVote(optionId) {
+        if (state.poll.status === "closed") {
+          toast("This poll is closed");
+          return;
+        }
+        const set = new Set(state.draftVotes);
+        if (set.has(optionId)) set.delete(optionId);
+        else set.add(optionId);
+        state.draftVotes = Array.from(set);
+        renderHero();
+        renderOptions();
+      }
+
+      function castVote() {
+        if (!activePerson()) {
+          toast("Choose a voter first");
+          return;
+        }
+        state.poll.votes[state.personId] = state.draftVotes.slice();
+        persistCurrent();
+        Bridge.send("DATA_UPDATE", {
+          collection: AppConfig.collection,
+          id: state.poll.id,
+          payload: appRecordPayload("vote_cast", state.poll)
+        });
+        toast(state.draftVotes.length ? "Vote saved" : "Vote cleared");
+        burst();
+        render();
+      }
+
+      function shareSummary() {
+        const winner = rankedOptions()[0];
+        const text = [
+          state.poll.title,
+          winner ? "Top option: " + winner.label + " (" + winner.score + " votes)" : "No votes yet",
+          "Voted: " + Object.keys(state.poll.votes || {}).filter((id) => (state.poll.votes[id] || []).length).length + "/" + state.poll.people.length
+        ].join("\\n");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(() => toast("Summary copied")).catch(() => fallbackCopy(text));
+        } else {
+          fallbackCopy(text);
+        }
+        Bridge.send("SHOW_TOAST", { message: "Event Poll summary ready", summary: text });
+      }
+
+      function fallbackCopy(text) {
+        const input = document.createElement("textarea");
+        input.value = text;
+        input.setAttribute("readonly", "");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        try {
+          document.execCommand("copy");
+          toast("Summary copied");
+        } catch (error) {
+          toast("Summary ready");
+        }
+        input.remove();
+      }
+
+      function createPoll() {
+        const title = $("#pollTitleInput").value.trim() || "Untitled event poll";
+        const kind = $("#kindInput").value;
+        const options = $("#optionsInput").value.split("\\n").map((line) => line.trim()).filter(Boolean).slice(0, 8);
+        const people = $("#peopleInput").value.split(",").map((name) => name.trim()).filter(Boolean).slice(0, 12);
+        if (options.length < 2) {
+          toast("Add at least two options");
+          return;
+        }
+        if (people.length < 1) {
+          toast("Add at least one voter");
+          return;
+        }
+        archiveCurrent("replaced");
+        state.poll = {
+          id: "poll_" + Date.now().toString(36),
+          title,
+          kind,
+          status: "live",
+          circleId: state.circleId,
+          circleType: state.circleType,
+          createdAt: new Date().toISOString(),
+          deadlineLabel: "Open now",
+          people: people.map((name, index) => ({ id: "p_" + slug(name) + "_" + index, name })),
+          options: options.map((label, index) => ({
+            id: "o_" + slug(label) + "_" + index,
+            label,
+            meta: optionMeta(kind, index)
+          })),
+          votes: {}
+        };
+        state.personId = state.poll.people[0].id;
+        state.memberId = state.personId;
+        state.draftVotes = [];
+        persistCurrent();
+        Bridge.send("DATA_CREATE", {
+          collection: AppConfig.collection,
+          payload: appRecordPayload("poll_created", state.poll)
+        });
+        closeSheet();
+        state.activeTab = "vote";
+        toast("Poll created");
+        render();
+      }
+
+      function archiveCurrent(reason) {
+        if (!state.poll || !state.poll.id) return;
+        const already = state.history.some((poll) => poll.id === state.poll.id);
+        const poll = clone(state.poll);
+        poll.status = reason === "closed" ? "closed" : poll.status;
+        poll.archivedAt = new Date().toISOString();
+        poll.archiveReason = reason;
+        if (!already) {
+          state.history = [poll].concat(state.history).slice(0, 12);
+          saveJson(AppConfig.storagePrefix + "_history", state.history);
+        }
+      }
+
+      function loadHistory(id) {
+        const found = state.history.find((poll) => poll.id === id);
+        if (!found) return;
+        state.poll = clone(found);
+        ensureActivePerson();
+        state.draftVotes = currentStoredVotes();
+        persistCurrent();
+        state.activeTab = "results";
+        toast("Loaded saved poll");
+        render();
+      }
+
+      function resetDemo() {
+        state.poll = clone(fallbackPoll);
+        state.history = [];
+        state.personId = "p_aldyth";
+        state.memberId = "p_aldyth";
+        state.draftVotes = currentStoredVotes();
+        persistCurrent();
+        saveJson(AppConfig.storagePrefix + "_history", state.history);
+        closeSheet();
+        toast("Demo restored");
+        render();
+      }
+
+      function openSheet() {
+        $("#composeSheet").classList.add("open");
+        setTimeout(() => $("#pollTitleInput").focus(), 50);
+      }
+
+      function closeSheet() {
+        $("#composeSheet").classList.remove("open");
+      }
+
+      function normalizePoll() {
+        state.poll.circleId = state.poll.circleId || state.circleId;
+        state.poll.circleType = state.poll.circleType || state.circleType;
+        state.poll.people = Array.isArray(state.poll.people) ? state.poll.people : [];
+        state.poll.options = Array.isArray(state.poll.options) ? state.poll.options : [];
+        state.poll.votes = state.poll.votes && typeof state.poll.votes === "object" ? state.poll.votes : {};
+        if (!state.poll.people.length) state.poll.people = clone(fallbackPoll.people);
+        if (!state.poll.options.length) state.poll.options = clone(fallbackPoll.options);
+        ensureActivePerson();
+      }
+
+      function ensureActivePerson() {
+        if (!state.poll.people.some((person) => person.id === state.personId)) {
+          state.personId = state.poll.people[0]?.id || "standalone_person";
+          state.memberId = state.personId;
+        }
+        state.draftVotes = currentStoredVotes();
+      }
+
+      function activePerson() {
+        return state.poll.people.find((person) => person.id === state.personId);
+      }
+
+      function currentStoredVotes() {
+        return (state.poll.votes && state.poll.votes[state.personId] ? state.poll.votes[state.personId] : []).slice();
+      }
+
+      function votersForOption(optionId) {
+        return state.poll.people.filter((person) => (state.poll.votes[person.id] || []).includes(optionId));
+      }
+
+      function rankedOptions() {
+        return state.poll.options.map((option) => ({
+          ...option,
+          score: votersForOption(option.id).length
+        })).sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+      }
+
+      function topOptionFor(poll) {
+        const people = Array.isArray(poll.people) ? poll.people : [];
+        const votes = poll.votes || {};
+        return (poll.options || []).map((option) => ({
+          ...option,
+          score: people.filter((person) => (votes[person.id] || []).includes(option.id)).length
+        })).sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))[0];
+      }
+
+      function persistCurrent() {
+        saveJson(AppConfig.storagePrefix + "_current", state.poll);
+      }
+
+      function appRecordPayload(action, poll) {
+        return {
+          circleId: state.circleId,
+          circleType: state.circleType,
+          appId: AppConfig.appId,
+          collection: AppConfig.collection,
+          ownerPersonId: state.personId,
+          action,
+          payloadJson: JSON.stringify(poll),
+          updatedAt: new Date().toISOString()
+        };
+      }
+
+      function setTheme(theme, persist) {
+        const next = theme === "dark" ? "dark" : "light";
+        state.theme = next;
+        document.documentElement.dataset.theme = next;
+        document.querySelector("meta[name='theme-color']").setAttribute("content", next === "dark" ? "#090d16" : "#f8fbff");
+        if (persist) localStorage.setItem(AppConfig.storagePrefix + "_theme", next);
+      }
+
+      function toast(message) {
+        const node = $("#toast");
+        node.textContent = message;
+        node.classList.add("show");
+        clearTimeout(toast.timer);
+        toast.timer = setTimeout(() => node.classList.remove("show"), 1800);
+      }
+
+      function burst() {
+        const wrap = $("#confetti");
+        wrap.innerHTML = "";
+        const rect = $("#castButton").getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
+        for (let index = 0; index < 18; index += 1) {
+          const piece = document.createElement("i");
+          piece.className = "burst";
+          piece.style.left = originX + "px";
+          piece.style.top = originY + "px";
+          piece.style.background = palette[index % palette.length];
+          piece.style.setProperty("--x", (Math.cos(index) * (70 + index * 3)).toFixed(1) + "px");
+          piece.style.setProperty("--y", (-70 - Math.sin(index * 1.7) * 55).toFixed(1) + "px");
+          wrap.appendChild(piece);
+        }
+        setTimeout(() => { wrap.innerHTML = ""; }, 900);
+      }
+
+      function renderMiniFaces(voters, seed) {
+        if (!voters.length) return `<span class="muted">No votes yet</span>`;
+        return voters.map((person, index) => `<span class="mini-face" style="background:${avatarGradient(seed + index)}">${initials(person.name)}</span>`).join("");
+      }
+
+      function avatarGradient(index) {
+        const first = palette[index % palette.length];
+        const second = palette[(index + 2) % palette.length];
+        return "linear-gradient(135deg," + first + "," + second + ")";
+      }
+
+      function optionMeta(kind, index) {
+        const text = {
+          time: ["Early option", "Balanced option", "Backup option", "Late option"],
+          place: ["Nearby", "Popular", "Quiet", "Easy parking"],
+          activity: ["Low effort", "Active", "Kid friendly", "Social"]
+        };
+        return (text[kind] || text.time)[index % 4];
+      }
+
+      function kindLabel(kind) {
+        return {
+          time: "Time poll",
+          place: "Place poll",
+          activity: "Activity poll"
+        }[kind] || "Event poll";
+      }
+
+      function formatShortDate(value) {
+        const date = value ? new Date(value) : new Date();
+        if (Number.isNaN(date.getTime())) return "Recently";
+        return date.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      }
+
+      function titleCase(value) {
+        return String(value || "").slice(0, 1).toUpperCase() + String(value || "").slice(1);
+      }
+
+      function firstName(name) {
+        return String(name || "Person").split(" ")[0];
+      }
+
+      function initials(name) {
+        return String(name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+      }
+
+      function slug(value) {
+        return String(value || "item").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 24) || "item";
+      }
+
+      function escapeHtml(value) {
+        return String(value == null ? "" : value).replace(/[&<>"']/g, (char) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;"
+        }[char]));
+      }
+
+      function escapeAttr(value) {
+        return escapeHtml(value).replace(/`/g, "&#096;");
+      }
+
+      function clone(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function read(key, fallback) {
+        try {
+          const value = localStorage.getItem(key);
+          return value == null ? fallback : value;
+        } catch (error) {
+          return fallback;
+        }
+      }
+
+      function readJson(key, fallback) {
+        try {
+          const value = localStorage.getItem(key);
+          return value ? JSON.parse(value) : fallback;
+        } catch (error) {
+          return fallback;
+        }
+      }
+
+      function saveJson(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+          toast("Storage is full");
+        }
+      }
+    })();
+  </script>
+</body>
+</html>
